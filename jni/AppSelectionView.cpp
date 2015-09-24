@@ -1071,7 +1071,7 @@ void AppSelectionView::SetAppList( const Array<const PcDef *> &movies, const PcD
 	{
 		if ( CurrentCategory == CATEGORY_LIMELIGHT )
 		{
-			SetError( CinemaStrings::Error_NoVideosInLimeLight.ToCStr(), false, false );
+			SetError( CinemaStrings::Error_NoApps.ToCStr(), false, false );
 		}
 		else
 		{

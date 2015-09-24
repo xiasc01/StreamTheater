@@ -47,6 +47,7 @@ public:
 
 	static String	Error_NoVideosOnPhone;
 	static String	Error_NoVideosInLimeLight;
+	static String	Error_NoApps;
 	static String	Error_UnableToPlayMovie;
 
 	static String	MoviePlayer_Reorient;

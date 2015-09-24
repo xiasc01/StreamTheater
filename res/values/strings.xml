@@ -83,6 +83,11 @@
       description="Error menu for when there are no movies in the LimeLight category."
       >No NVIDIA GameStream (TM) computers found on network.</string>
   <string
+      name="Error_NoApps"
+      project="vrmatter-streamtheater"
+      description="Error menu for when there are no Apps in the Gamestream category."
+      >No applications found on this computer.  Add something using GeForce Experience (TM).</string>
+  <string
       name="Error_UnableToPlayMovie"
       project="vrmatter-streamtheater"
       description="Error message for when a movie could not be played by the movie player."

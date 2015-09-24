@@ -39,6 +39,7 @@ String CinemaStrings::TheaterSelection_Title;
 
 String CinemaStrings::Error_NoVideosOnPhone;
 String CinemaStrings::Error_NoVideosInLimeLight;
+String CinemaStrings::Error_NoApps;
 String CinemaStrings::Error_UnableToPlayMovie;
 
 String CinemaStrings::MoviePlayer_Reorient;
@@ -102,6 +103,7 @@ void CinemaStrings::OneTimeInit( CinemaApp &cinema )
 	VrLocale::GetString( app->GetVrJni(), app->GetJavaObject(), "@string/Error_NoVideosOnPhone", 	"@string/Error_NoVideosOnPhone", 	Error_NoVideosOnPhone );
 
 	VrLocale::GetString( app->GetVrJni(), app->GetJavaObject(), "@string/Error_NoVideosInLimeLight", "@string/Error_NoVideosInLimeLight", Error_NoVideosInLimeLight );
+	VrLocale::GetString( app->GetVrJni(), app->GetJavaObject(), "@string/Error_NoApps",		 		 "@string/Error_NoApps",			  Error_NoApps );
 
 	VrLocale::GetString( app->GetVrJni(), app->GetJavaObject(), "@string/Error_UnableToPlayMovie", 	"@string/Error_UnableToPlayMovie",	Error_UnableToPlayMovie );
 
