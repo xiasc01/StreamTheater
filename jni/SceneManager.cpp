@@ -782,7 +782,7 @@ Matrix4f SceneManager::DrawEyeView( const int eye, const float fovDegrees )
 	if ( SceneInfo.UseDynamicProgram )
 	{
 		// lights fading in and out, always on if no movie loaded
-		const float cinemaLights = ( ( MovieTextureWidth > 0 ) && !SceneInfo.UseFreeScreen ) ?
+		const float cinemaLights = ( ( MovieTextureWidth > 0 ) /*&& !SceneInfo.UseFreeScreen*/ ) ?
 				(float)StaticLighting.Value( vrapi_GetTimeInSeconds() ) : 1.0f;
 
 		if ( cinemaLights <= 0.0f )
@@ -826,7 +826,7 @@ Matrix4f SceneManager::DrawEyeView( const int eye, const float fovDegrees )
 	glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
 	glClear( GL_COLOR_BUFFER_BIT );
 
-	if ( !SceneInfo.UseFreeScreen )
+//	if ( !SceneInfo.UseFreeScreen )
 	{
 		Scene.DrawEyeView( eye, fovDegrees );
 	}

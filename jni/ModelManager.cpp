@@ -71,7 +71,7 @@ void ModelManager::LoadModels()
 	LOG( "ModelManager::LoadModels" );
 	const double start = vrapi_GetTimeInSeconds();
 
-	BoxOffice = LoadScene( "assets/scenes/BoxOffice.ovrscene", false, true, true );
+	BoxOffice = LoadScene( "assets/scenes/stlobby.ovrscene", false, true, true );
 	BoxOffice->UseSeats = false;
 	BoxOffice->LobbyScreen = true;
 
@@ -84,6 +84,10 @@ void ModelManager::LoadModels()
 		// we want our theaters to show up first
 		Theaters.PushBack( LoadScene( "assets/scenes/home_theater.ovrscene", true, false, true ) );
 
+		SceneDef* freescreenscene = LoadScene( "assets/scenes/SeaDome.ovrscene", true, false, true );
+		freescreenscene->UseFreeScreen = true;
+		Theaters.PushBack( freescreenscene );
+
 		int width = 0, height = 0;
 
 		// create void scene
@@ -93,7 +97,6 @@ void ModelManager::LoadModels()
 		VoidScene->UseDynamicProgram = false;
 		VoidScene->UseScreenGeometry = false;
 		VoidScene->UseFreeScreen = true;
-//		VoidScene->UseVRScreen = true;
 
 		VoidScene->IconTexture = LoadTextureFromApplicationPackage( "assets/VoidTheater.png",
 				TextureFlags_t( TEXTUREFLAG_NO_DEFAULT ), width, height );
