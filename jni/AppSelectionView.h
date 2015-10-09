@@ -157,10 +157,11 @@ private:
 	UITextButton *						ButtonGaze;
 	UITextButton *						ButtonTrackpad;
 	UITextButton *						ButtonOff;
-	UITextButton *						Button1080p60;
-	UITextButton *						Button1080p30;
-	UITextButton *						Button720p60;
-	UITextButton *						Button720p30;
+	UITextButton *						Button1080;
+	UITextButton *						Button720;
+	UITextButton *						Button480;
+	UITextButton *						Button60FPS;
+	UITextButton *						Button30FPS;
 	UITextButton *						ButtonHostAudio;
 	UITextButton *						ButtonSaveApp;
 	UITextButton *						ButtonSaveDefault;

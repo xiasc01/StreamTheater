@@ -261,10 +261,11 @@ private:
 
 	UIButton				StreamMenuButton;
 	UIContainer *			StreamMenu;
-	UITextButton			Button1080p60;
-	UITextButton			Button1080p30;
-	UITextButton			Button720p60;
-	UITextButton			Button720p30;
+	UITextButton			Button1080;
+	UITextButton			Button720;
+	UITextButton			Button480;
+	UITextButton			Button60FPS;
+	UITextButton			Button30FPS;
 	UITextButton			ButtonHostAudio;
 
 	UIButton				ScreenMenuButton;
@@ -439,25 +440,29 @@ private:
 	bool			OffActive();
 
 
-	friend void		Button1080p60Callback( UITextButton *button, void *object );
-	void			Button1080p60Pressed();
-	friend void		Button1080p30Callback( UITextButton *button, void *object );
-	void			Button1080p30Pressed();
-	friend void		Button720p60Callback( UITextButton *button, void *object );
-	void			Button720p60Pressed();
-	friend void		Button720p30Callback( UITextButton *button, void *object );
-	void			Button720p30Pressed();
+	friend void		Button1080Callback( UITextButton *button, void *object );
+	void			Button1080pPressed();
+	friend void		Button720Callback( UITextButton *button, void *object );
+	void			Button720Pressed();
+	friend void		Button480Callback( UITextButton *button, void *object );
+	void			Button480Pressed();
+	friend void		Button60FPSCallback( UITextButton *button, void *object );
+	void			Button60FPSPressed();
+	friend void		Button30FPSCallback( UITextButton *button, void *object );
+	void			Button30FPSPressed();
 	friend void		HostAudioCallback( UITextButton *button, void *object );
 	void			HostAudioPressed();
 
-	friend bool		Button1080p60IsSelectedCallback( UITextButton *button, void *object );
-	bool			Button1080p60IsSelected();
-	friend bool		Button1080p30IsSelectedCallback( UITextButton *button, void *object );
-	bool			Button1080p30IsSelected();
-	friend bool		Button720p60IsSelectedCallback( UITextButton *button, void *object );
-	bool			Button720p60IsSelected();
-	friend bool		Button720p30IsSelectedCallback( UITextButton *button, void *object );
-	bool			Button720p30IsSelected();
+	friend bool		Button1080IsSelectedCallback( UITextButton *button, void *object );
+	bool			Button1080IsSelected();
+	friend bool		Button720IsSelectedCallback( UITextButton *button, void *object );
+	bool			Button720IsSelected();
+	friend bool		Button480IsSelectedCallback( UITextButton *button, void *object );
+	bool			Button480IsSelected();
+	friend bool		Button60FPSIsSelectedCallback( UITextButton *button, void *object );
+	bool			Button60FPSIsSelected();
+	friend bool		Button30FPSIsSelectedCallback( UITextButton *button, void *object );
+	bool			Button30FPSIsSelected();
 	friend bool		HostAudioIsSelectedCallback( UITextButton *button, void *object );
 	bool			HostAudioIsSelected();
 

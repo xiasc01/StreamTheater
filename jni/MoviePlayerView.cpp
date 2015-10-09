@@ -96,10 +96,11 @@ MoviePlayerView::MoviePlayerView( CinemaApp &cinema ) :
 	TrackpadSlider(),
 	StreamMenuButton( Cinema ),
 	StreamMenu( NULL ),
-	Button1080p60( Cinema ),
-	Button1080p30( Cinema ),
-	Button720p60( Cinema ),
-	Button720p30( Cinema ),
+	Button1080( Cinema ),
+	Button720( Cinema ),
+	Button480( Cinema ),
+	Button60FPS( Cinema ),
+	Button30FPS( Cinema ),
 	ButtonHostAudio( Cinema ),
 	ScreenMenuButton( Cinema ),
 	ScreenMenu( NULL ),
@@ -270,15 +271,17 @@ bool GazeActiveCallback				( UITextButton *button, void *object ) { return ( ( M
 bool TrackpadActiveCallback			( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->TrackpadActive(); }
 bool OffActiveCallback				( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->OffActive(); }
 
-void Button1080p60Callback			( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->Button1080p60Pressed(); }
-void Button1080p30Callback			( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->Button1080p30Pressed(); }
-void Button720p60Callback			( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->Button720p60Pressed(); }
-void Button720p30Callback			( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->Button720p30Pressed(); }
+void Button1080Callback				( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->Button1080pPressed(); }
+void Button720Callback				( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->Button720Pressed(); }
+void Button480Callback				( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->Button480Pressed(); }
+void Button60FPSCallback			( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->Button60FPSPressed(); }
+void Button30FPSCallback			( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->Button30FPSPressed(); }
 void HostAudioCallback				( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->HostAudioPressed(); }
-bool Button1080p60IsSelectedCallback( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->Button1080p60IsSelected(); }
-bool Button1080p30IsSelectedCallback( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->Button1080p30IsSelected(); }
-bool Button720p60IsSelectedCallback	( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->Button720p60IsSelected(); }
-bool Button720p30IsSelectedCallback	( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->Button720p30IsSelected(); }
+bool Button1080IsSelectedCallback	( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->Button1080IsSelected(); }
+bool Button720IsSelectedCallback	( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->Button720IsSelected(); }
+bool Button480IsSelectedCallback	( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->Button480IsSelected(); }
+bool Button60FPSIsSelectedCallback	( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->Button60FPSIsSelected(); }
+bool Button30FPSIsSelectedCallback	( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->Button30FPSIsSelected(); }
 bool HostAudioIsSelectedCallback	( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->HostAudioIsSelected(); }
 
 void SBSCallback					( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->SBSPressed(); }
@@ -707,36 +710,43 @@ void MoviePlayerView::CreateMenu( OvrGuiSys & guiSys )
 	StreamMenu->SetLocalPosition( PixelPos( 0, MENU_TOP, 1 ) );
 	StreamMenu->SetVisible(false);
 
-	Button1080p60.AddToMenu( guiSys, PlaybackControlsMenu, StreamMenu );
-	Button1080p60.SetLocalPosition( PixelPos( MENU_X * -1, MENU_Y * 1, 1 ) );
-	Button1080p60.SetText( CinemaStrings::ButtonText_Button1080p60 );
-	TextButtonHelper(Button1080p60);
-	Button1080p60.SetOnClick( Button1080p60Callback, this);
-	Button1080p60.SetIsSelected( Button1080p60IsSelectedCallback, this);
+	Button1080.AddToMenu( guiSys, PlaybackControlsMenu, StreamMenu );
+	Button1080.SetLocalPosition( PixelPos( MENU_X * -1, MENU_Y * 1, 1 ) );
+	Button1080.SetText( CinemaStrings::ButtonText_Button1080 );
+	TextButtonHelper(Button1080);
+	Button1080.SetOnClick( Button1080Callback, this);
+	Button1080.SetIsSelected( Button1080IsSelectedCallback, this);
 
-	Button1080p30.AddToMenu( guiSys, PlaybackControlsMenu, StreamMenu );
-	Button1080p30.SetLocalPosition( PixelPos( MENU_X * 1, MENU_Y * 1, 1 ) );
-	Button1080p30.SetText( CinemaStrings::ButtonText_Button1080p30 );
-	TextButtonHelper(Button1080p30);
-	Button1080p30.SetOnClick( Button1080p30Callback, this);
-	Button1080p30.SetIsSelected( Button1080p30IsSelectedCallback, this);
+	Button720.AddToMenu( guiSys, PlaybackControlsMenu, StreamMenu );
+	Button720.SetLocalPosition( PixelPos( MENU_X * -1, MENU_Y * 2, 1 ) );
+	Button720.SetText( CinemaStrings::ButtonText_Button720 );
+	TextButtonHelper(Button720);
+	Button720.SetOnClick( Button720Callback, this);
+	Button720.SetIsSelected( Button720IsSelectedCallback, this);
 
-	Button720p60.AddToMenu( guiSys, PlaybackControlsMenu, StreamMenu );
-	Button720p60.SetLocalPosition( PixelPos( MENU_X * -1, MENU_Y * 2, 1 ) );
-	Button720p60.SetText( CinemaStrings::ButtonText_Button720p60 );
-	TextButtonHelper(Button720p60);
-	Button720p60.SetOnClick( Button720p60Callback, this);
-	Button720p60.SetIsSelected( Button720p60IsSelectedCallback, this);
+	Button480.AddToMenu( guiSys, PlaybackControlsMenu, StreamMenu );
+	Button480.SetLocalPosition( PixelPos( MENU_X * -1, MENU_Y * 3, 1 ) );
+	Button480.SetText( CinemaStrings::ButtonText_Button480 );
+	TextButtonHelper(Button480);
+	Button480.SetOnClick( Button480Callback, this);
+	Button480.SetIsSelected( Button480IsSelectedCallback, this);
 
-	Button720p30.AddToMenu( guiSys, PlaybackControlsMenu, StreamMenu );
-	Button720p30.SetLocalPosition( PixelPos( MENU_X * 1, MENU_Y * 2, 1 ) );
-	Button720p30.SetText( CinemaStrings::ButtonText_Button720p30 );
-	TextButtonHelper(Button720p30);
-	Button720p30.SetOnClick( Button720p30Callback, this);
-	Button720p30.SetIsSelected( Button720p30IsSelectedCallback, this);
+	Button60FPS.AddToMenu( guiSys, PlaybackControlsMenu, StreamMenu );
+	Button60FPS.SetLocalPosition( PixelPos( MENU_X * 1, MENU_Y * 1, 1 ) );
+	Button60FPS.SetText( CinemaStrings::ButtonText_Button60FPS );
+	TextButtonHelper(Button60FPS);
+	Button60FPS.SetOnClick( Button60FPSCallback, this);
+	Button60FPS.SetIsSelected( Button60FPSIsSelectedCallback, this);
+
+	Button30FPS.AddToMenu( guiSys, PlaybackControlsMenu, StreamMenu );
+	Button30FPS.SetLocalPosition( PixelPos( MENU_X * 1, MENU_Y * 2, 1 ) );
+	Button30FPS.SetText( CinemaStrings::ButtonText_Button30FPS );
+	TextButtonHelper(Button30FPS);
+	Button30FPS.SetOnClick( Button30FPSCallback, this);
+	Button30FPS.SetIsSelected( Button30FPSIsSelectedCallback, this);
 
 	ButtonHostAudio.AddToMenu( guiSys, PlaybackControlsMenu, StreamMenu );
-	ButtonHostAudio.SetLocalPosition( PixelPos( MENU_X * -1, MENU_Y * 3, 1 ) );
+	ButtonHostAudio.SetLocalPosition( PixelPos( MENU_X * 1, MENU_Y * 3, 1 ) );
 	ButtonHostAudio.SetText( CinemaStrings::ButtonText_ButtonHostAudio );
 	TextButtonHelper(ButtonHostAudio);
 	ButtonHostAudio.SetOnClick( HostAudioCallback, this);
@@ -1810,7 +1820,7 @@ void MoviePlayerView::TrackpadScalePressed(const float value)
 }
 
 // Stream controls
-void MoviePlayerView::Button1080p60Pressed()
+void MoviePlayerView::Button1080pPressed()
 {
 	Cinema.SceneMgr.ClearMovie();
 	streamWidth = 1920;
@@ -1819,29 +1829,32 @@ void MoviePlayerView::Button1080p60Pressed()
 	UpdateMenus();
 	Cinema.StartMoviePlayback(streamWidth, streamHeight, streamFPS, streamHostAudio);
 }
-void MoviePlayerView::Button1080p30Pressed()
-{
-	Cinema.SceneMgr.ClearMovie();
-	streamWidth = 1920;
-	streamHeight = 1080;
-	streamFPS = 30;
-	UpdateMenus();
-	Cinema.StartMoviePlayback(streamWidth, streamHeight, streamFPS, streamHostAudio);
-}
-void MoviePlayerView::Button720p60Pressed()
+void MoviePlayerView::Button720Pressed()
 {
 	Cinema.SceneMgr.ClearMovie();
 	streamWidth = 1280;
 	streamHeight = 720;
+	UpdateMenus();
+	Cinema.StartMoviePlayback(streamWidth, streamHeight, streamFPS, streamHostAudio);
+}
+void MoviePlayerView::Button480Pressed()
+{
+	Cinema.SceneMgr.ClearMovie();
+	streamWidth = 854;
+	streamHeight = 480;
+	UpdateMenus();
+	Cinema.StartMoviePlayback(streamWidth, streamHeight, streamFPS, streamHostAudio);
+}
+void MoviePlayerView::Button60FPSPressed()
+{
+	Cinema.SceneMgr.ClearMovie();
 	streamFPS = 60;
 	UpdateMenus();
 	Cinema.StartMoviePlayback(streamWidth, streamHeight, streamFPS, streamHostAudio);
 }
-void MoviePlayerView::Button720p30Pressed()
+void MoviePlayerView::Button30FPSPressed()
 {
 	Cinema.SceneMgr.ClearMovie();
-	streamWidth = 1280;
-	streamHeight = 720;
 	streamFPS = 30;
 	UpdateMenus();
 	Cinema.StartMoviePlayback(streamWidth, streamHeight, streamFPS, streamHostAudio);
@@ -1892,21 +1905,25 @@ void MoviePlayerView::SBSPressed()
 	}
 }
 
-bool MoviePlayerView::Button1080p60IsSelected()
+bool MoviePlayerView::Button1080IsSelected()
 {
-	return streamWidth == 1920 && streamHeight == 1080 && streamFPS == 60;
+	return streamWidth == 1920 && streamHeight == 1080;
 }
-bool MoviePlayerView::Button1080p30IsSelected()
+bool MoviePlayerView::Button720IsSelected()
 {
-	return streamWidth == 1920 && streamHeight == 1080 && streamFPS == 30;
+	return streamWidth == 1280 && streamHeight == 720;
 }
-bool MoviePlayerView::Button720p60IsSelected()
+bool MoviePlayerView::Button480IsSelected()
 {
-	return streamWidth == 1280 && streamHeight == 720 && streamFPS == 60;
+	return streamWidth == 854 && streamHeight == 480;
 }
-bool MoviePlayerView::Button720p30IsSelected()
+bool MoviePlayerView::Button60FPSIsSelected()
 {
-	return streamWidth == 1280 && streamHeight == 720 && streamFPS == 30;
+	return streamFPS == 60;
+}
+bool MoviePlayerView::Button30FPSIsSelected()
+{
+	return streamFPS == 30;
 }
 bool MoviePlayerView::HostAudioIsSelected()
 {
@@ -1949,10 +1966,10 @@ void MoviePlayerView::UpdateMenus()
 	ButtonTrackpad.UpdateButtonState();
 	ButtonOff.UpdateButtonState();
 
-	Button1080p60.UpdateButtonState();
-	Button1080p30.UpdateButtonState();
-	Button720p60.UpdateButtonState();
-	Button720p30.UpdateButtonState();
+	Button1080.UpdateButtonState();
+	Button720.UpdateButtonState();
+	Button60FPS.UpdateButtonState();
+	Button30FPS.UpdateButtonState();
 	ButtonHostAudio.UpdateButtonState();
 
 	ButtonSBS.UpdateButtonState();

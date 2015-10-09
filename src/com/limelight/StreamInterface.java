@@ -116,6 +116,25 @@ public class StreamInterface implements SurfaceHolder.Callback,
         prefConfig.height = height;
         prefConfig.fps = fps;
         prefConfig.playHostAudio = hostAudio;
+        
+        // 1080p30 and 720p60 are 10
+        prefConfig.bitrate = 10;
+        if(height == 1080 && fps == 60)
+        {
+        	prefConfig.bitrate = 20;
+        }
+        if(height == 720 && fps == 30)
+        {
+        	prefConfig.bitrate = 5;
+        }
+        if(height == 480 && fps == 60)
+        {
+        	prefConfig.bitrate = 4;
+        }
+        if(height == 480 && fps== 30)
+        {
+        	prefConfig.bitrate = 2;        	
+        }
 
         switch (prefConfig.decoder) {
         case PreferenceConfiguration.FORCE_SOFTWARE_DECODER:

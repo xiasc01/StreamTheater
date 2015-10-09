@@ -116,10 +116,11 @@
 	<string name="ButtonText_LabelLatency">VR Screen Lag</string>
 	<string name="ButtonText_LabelVRXScale">Horizontal Scale</string>
 	<string name="ButtonText_LabelVRYScale">Vertical Scale</string>
-	<string name="ButtonText_Button1080p60">1080p60</string>
-	<string name="ButtonText_Button1080p30">1080p30</string>
-	<string name="ButtonText_Button720p60">720p60</string>
-	<string name="ButtonText_Button720p30">720p30</string>
+	<string name="ButtonText_Button1080">1080p</string>
+	<string name="ButtonText_Button720">720p</string>
+	<string name="ButtonText_Button480">480p</string>
+	<string name="ButtonText_Button60FPS">60 FPS</string>
+	<string name="ButtonText_Button30FPS">30 FPS</string>
 	<string name="ButtonText_ButtonHostAudio">Host Audio</string>
 	<string name="ButtonText_ButtonSBS">SBS</string>
 	<string name="ButtonText_ButtonChangeSeat">Change Seat</string>

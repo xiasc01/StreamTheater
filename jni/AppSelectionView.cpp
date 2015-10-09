@@ -102,10 +102,11 @@ AppSelectionView::AppSelectionView( CinemaApp &cinema ) :
 	ButtonGaze( NULL ),
 	ButtonTrackpad( NULL ),
 	ButtonOff( NULL ),
-	Button1080p60( NULL ),
-	Button1080p30( NULL ),
-	Button720p60( NULL ),
-	Button720p30( NULL ),
+	Button1080( NULL ),
+	Button720( NULL ),
+	Button480( NULL ),
+	Button60FPS( NULL ),
+	Button30FPS( NULL ),
 	ButtonHostAudio( NULL ),
 	ButtonSaveApp( NULL ),
 	ButtonSaveDefault( NULL ),
@@ -660,11 +661,11 @@ void AppSelectionView::CreateMenu( OvrGuiSys & guiSys )
 	//
 	settingsMenu = new UIContainer( Cinema );
 	settingsMenu->AddToMenu( guiSys, Menu );
-	settingsMenu->SetLocalPose( forward, Vector3f( 0.0f, 1.5f, -3.0f ) );
+	settingsMenu->SetLocalPose( forward, Vector3f( 0.0f, 2.0f, -3.0f ) );
 	settingsMenu->SetVisible(false);
 
 	newPCbg.AddToMenu( guiSys, Menu, settingsMenu);
-	newPCbg.SetImage( 0, SURFACE_TEXTURE_DIFFUSE, bgTintTexture, 700, 800 );
+	newPCbg.SetImage( 0, SURFACE_TEXTURE_DIFFUSE, bgTintTexture, 700, 900 );
 
 	static const float column1 = -0.32f;
 	static const float column2 = 0.32f;
@@ -672,37 +673,45 @@ void AppSelectionView::CreateMenu( OvrGuiSys & guiSys )
 	static const float rowinc = -0.25f;
 	float rowpos = rowstart;
 
-	Button1080p60 = new UITextButton( Cinema );
-	Button1080p60->AddToMenu( guiSys, Menu, settingsMenu );
-	Button1080p60->SetLocalPosition( Vector3f( column1, rowpos += rowinc, 0.1f ) );
-	Button1080p60->SetText( CinemaStrings::ButtonText_Button1080p60 );
-	TextButtonHelper(Button1080p60);
-	Button1080p60->SetOnClick( SettingsCallback, this);
-	Button1080p60->SetIsSelected( SettingsSelectedCallback, this);
+	Button1080 = new UITextButton( Cinema );
+	Button1080->AddToMenu( guiSys, Menu, settingsMenu );
+	Button1080->SetLocalPosition( Vector3f( column1, rowpos += rowinc, 0.1f ) );
+	Button1080->SetText( CinemaStrings::ButtonText_Button1080 );
+	TextButtonHelper(Button1080);
+	Button1080->SetOnClick( SettingsCallback, this);
+	Button1080->SetIsSelected( SettingsSelectedCallback, this);
 
-	Button1080p30 = new UITextButton( Cinema );
-	Button1080p30->AddToMenu( guiSys, Menu, settingsMenu );
-	Button1080p30->SetLocalPosition( Vector3f( column1, rowpos += rowinc, 0.1f ) );
-	Button1080p30->SetText( CinemaStrings::ButtonText_Button1080p30 );
-	TextButtonHelper(Button1080p30);
-	Button1080p30->SetOnClick( SettingsCallback, this);
-	Button1080p30->SetIsSelected( SettingsSelectedCallback, this);
+	Button720 = new UITextButton( Cinema );
+	Button720->AddToMenu( guiSys, Menu, settingsMenu );
+	Button720->SetLocalPosition( Vector3f( column1, rowpos += rowinc, 0.1f ) );
+	Button720->SetText( CinemaStrings::ButtonText_Button720 );
+	TextButtonHelper(Button720);
+	Button720->SetOnClick( SettingsCallback, this);
+	Button720->SetIsSelected( SettingsSelectedCallback, this);
 
-	Button720p60 = new UITextButton( Cinema );
-	Button720p60->AddToMenu( guiSys, Menu, settingsMenu );
-	Button720p60->SetLocalPosition( Vector3f( column1, rowpos += rowinc, 0.1f ) );
-	Button720p60->SetText( CinemaStrings::ButtonText_Button720p60 );
-	TextButtonHelper(Button720p60);
-	Button720p60->SetOnClick( SettingsCallback, this);
-	Button720p60->SetIsSelected( SettingsSelectedCallback, this);
+	Button480 = new UITextButton( Cinema );
+	Button480->AddToMenu( guiSys, Menu, settingsMenu );
+	Button480->SetLocalPosition( Vector3f( column1, rowpos += rowinc, 0.1f ) );
+	Button480->SetText( CinemaStrings::ButtonText_Button480 );
+	TextButtonHelper(Button480);
+	Button480->SetOnClick( SettingsCallback, this);
+	Button480->SetIsSelected( SettingsSelectedCallback, this);
 
-	Button720p30 = new UITextButton( Cinema );
-	Button720p30->AddToMenu( guiSys, Menu, settingsMenu );
-	Button720p30->SetLocalPosition( Vector3f( column1, rowpos += rowinc, 0.1f ) );
-	Button720p30->SetText( CinemaStrings::ButtonText_Button720p30 );
-	TextButtonHelper(Button720p30);
-	Button720p30->SetOnClick( SettingsCallback, this);
-	Button720p30->SetIsSelected( SettingsSelectedCallback, this);
+	Button60FPS = new UITextButton( Cinema );
+	Button60FPS->AddToMenu( guiSys, Menu, settingsMenu );
+	Button60FPS->SetLocalPosition( Vector3f( column1, rowpos += rowinc, 0.1f ) );
+	Button60FPS->SetText( CinemaStrings::ButtonText_Button60FPS );
+	TextButtonHelper(Button60FPS);
+	Button60FPS->SetOnClick( SettingsCallback, this);
+	Button60FPS->SetIsSelected( SettingsSelectedCallback, this);
+
+	Button30FPS = new UITextButton( Cinema );
+	Button30FPS->AddToMenu( guiSys, Menu, settingsMenu );
+	Button30FPS->SetLocalPosition( Vector3f( column1, rowpos += rowinc, 0.1f ) );
+	Button30FPS->SetText( CinemaStrings::ButtonText_Button30FPS );
+	TextButtonHelper(Button30FPS);
+	Button30FPS->SetOnClick( SettingsCallback, this);
+	Button30FPS->SetIsSelected( SettingsSelectedCallback, this);
 
 	// skip 1/4 a space
 	rowpos += rowinc /4;
@@ -821,10 +830,11 @@ void AppSelectionView::SettingsButtonPressed()
 	ButtonGaze->UpdateButtonState();
 	ButtonTrackpad->UpdateButtonState();
 	ButtonOff->UpdateButtonState();
-	Button1080p60->UpdateButtonState();
-	Button1080p30->UpdateButtonState();
-	Button720p60->UpdateButtonState();
-	Button720p30->UpdateButtonState();
+	Button1080->UpdateButtonState();
+	Button720->UpdateButtonState();
+	Button480->UpdateButtonState();
+	Button60FPS->UpdateButtonState();
+	Button30FPS->UpdateButtonState();
 	ButtonHostAudio->UpdateButtonState();
 	ButtonSaveApp->UpdateButtonState();
 	ButtonSaveDefault->UpdateButtonState();
@@ -846,21 +856,25 @@ void AppSelectionView::SettingsPressed( UITextButton *button)
 	{
 		mouseMode = MOUSE_OFF;
 	}
-	else if( button->GetText() == CinemaStrings::ButtonText_Button1080p60 )
+	else if( button->GetText() == CinemaStrings::ButtonText_Button1080 )
 	{
-		streamWidth = 1920; streamHeight = 1080; streamFPS = 60;
+		streamWidth = 1920; streamHeight = 1080;
 	}
-	else if( button->GetText() == CinemaStrings::ButtonText_Button1080p30 )
+	else if( button->GetText() == CinemaStrings::ButtonText_Button720 )
 	{
-		streamWidth = 1920; streamHeight = 1080; streamFPS = 30;
+		streamWidth = 1280; streamHeight = 720;
 	}
-	else if( button->GetText() == CinemaStrings::ButtonText_Button720p60 )
+	else if( button->GetText() == CinemaStrings::ButtonText_Button480 )
 	{
-		streamWidth = 1280; streamHeight = 720; streamFPS = 60;
+		streamWidth = 854; streamHeight = 480;
 	}
-	else if( button->GetText() == CinemaStrings::ButtonText_Button720p30 )
+	else if( button->GetText() == CinemaStrings::ButtonText_Button60FPS )
 	{
-		streamWidth = 1280; streamHeight = 720; streamFPS = 30;
+		streamFPS = 60;
+	}
+	else if( button->GetText() == CinemaStrings::ButtonText_Button30FPS )
+	{
+		streamFPS = 30;
 	}
 	else if( button->GetText() == CinemaStrings::ButtonText_ButtonHostAudio )
 	{
@@ -878,10 +892,11 @@ void AppSelectionView::SettingsPressed( UITextButton *button)
 	ButtonGaze->UpdateButtonState();
 	ButtonTrackpad->UpdateButtonState();
 	ButtonOff->UpdateButtonState();
-	Button1080p60->UpdateButtonState();
-	Button1080p30->UpdateButtonState();
-	Button720p60->UpdateButtonState();
-	Button720p30->UpdateButtonState();
+	Button1080->UpdateButtonState();
+	Button720->UpdateButtonState();
+	Button480->UpdateButtonState();
+	Button60FPS->UpdateButtonState();
+	Button30FPS->UpdateButtonState();
 	ButtonHostAudio->UpdateButtonState();
 	ButtonSaveApp->UpdateButtonState();
 	ButtonSaveDefault->UpdateButtonState();
@@ -901,21 +916,25 @@ bool AppSelectionView::SettingsIsSelected( UITextButton *button)
 	{
 		return mouseMode == MOUSE_OFF;
 	}
-	else if( button->GetText() == CinemaStrings::ButtonText_Button1080p60 )
+	else if( button->GetText() == CinemaStrings::ButtonText_Button1080 )
 	{
-		return streamWidth == 1920 && streamHeight == 1080 && streamFPS == 60;
+		return streamWidth == 1920 && streamHeight == 1080;
 	}
-	else if( button->GetText() == CinemaStrings::ButtonText_Button1080p30 )
+	else if( button->GetText() == CinemaStrings::ButtonText_Button720 )
 	{
-		return streamWidth == 1920 && streamHeight == 1080 && streamFPS == 30;
+		return streamWidth == 1280 && streamHeight == 720;
 	}
-	else if( button->GetText() == CinemaStrings::ButtonText_Button720p60 )
+	else if( button->GetText() == CinemaStrings::ButtonText_Button480 )
 	{
-		return streamWidth == 1280 && streamHeight == 720 && streamFPS == 60;
+		return streamWidth == 854 && streamHeight == 480;
 	}
-	else if( button->GetText() == CinemaStrings::ButtonText_Button720p30 )
+	else if( button->GetText() == CinemaStrings::ButtonText_Button60FPS )
 	{
-		return streamWidth == 1280 && streamHeight == 720 && streamFPS == 30;
+		return streamFPS == 60;
+	}
+	else if( button->GetText() == CinemaStrings::ButtonText_Button30FPS )
+	{
+		return streamFPS == 30;
 	}
 	else if( button->GetText() == CinemaStrings::ButtonText_ButtonHostAudio )
 	{

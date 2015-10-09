@@ -64,10 +64,11 @@ public:
 	static String	ButtonText_ButtonMapKeyboard;
 	static String	ButtonText_ButtonSpeed;
 	static String	ButtonText_ButtonComfortMode;
-	static String	ButtonText_Button720p30;
+	static String	ButtonText_Button30FPS;
 	static String	ButtonText_ButtonHostAudio;
-	static String	ButtonText_Button1080p30;
-	static String	ButtonText_Button720p60;
+	static String	ButtonText_Button720;
+	static String	ButtonText_Button480;
+	static String	ButtonText_Button60FPS;
 	static String	ButtonText_ButtonDistance;
 	static String	ButtonText_ButtonSize;
 	static String	ButtonText_ButtonSBS;
@@ -75,7 +76,7 @@ public:
 	static String	ButtonText_ButtonGaze;
 	static String	ButtonText_ButtonTrackpad;
 	static String	ButtonText_LabelTrackpadScale;
-	static String	ButtonText_Button1080p60;
+	static String	ButtonText_Button1080;
 	static String	ButtonText_ButtonOff;
 	static String	ButtonText_LabelGazeScale;
 	static String	ButtonText_LabelLatency;
