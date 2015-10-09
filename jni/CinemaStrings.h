@@ -71,7 +71,10 @@ public:
 	static String	ButtonText_Button60FPS;
 	static String	ButtonText_ButtonDistance;
 	static String	ButtonText_ButtonSize;
-	static String	ButtonText_ButtonSBS;
+	static String	ButtonText_ButtonSBSOff;
+	static String	ButtonText_ButtonSBSRift;
+	static String	ButtonText_ButtonSBSCrop;
+	static String	ButtonText_ButtonSBSScale;
 	static String	ButtonText_ButtonChangeSeat;
 	static String	ButtonText_ButtonGaze;
 	static String	ButtonText_ButtonTrackpad;

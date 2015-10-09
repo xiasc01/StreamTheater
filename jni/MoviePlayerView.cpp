@@ -104,7 +104,10 @@ MoviePlayerView::MoviePlayerView( CinemaApp &cinema ) :
 	ButtonHostAudio( Cinema ),
 	ScreenMenuButton( Cinema ),
 	ScreenMenu( NULL ),
-	ButtonSBS( Cinema ),
+	ButtonSBSOff( Cinema ),
+	ButtonSBSRift( Cinema ),
+	ButtonSBSCrop( Cinema ),
+	ButtonSBSScale( Cinema ),
 	ButtonChangeSeat( Cinema ),
 	ScreenDistance( Cinema ),
 	DistanceSliderBackground( Cinema ),
@@ -284,11 +287,18 @@ bool Button60FPSIsSelectedCallback	( UITextButton *button, void *object ) { retu
 bool Button30FPSIsSelectedCallback	( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->Button30FPSIsSelected(); }
 bool HostAudioIsSelectedCallback	( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->HostAudioIsSelected(); }
 
-void SBSCallback					( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->SBSPressed(); }
+void SBSOffCallback					( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->SBSOffPressed(); }
+void SBSRiftCallback				( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->SBSRiftPressed(); }
+void SBSCropCallback				( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->SBSCropPressed(); }
+void SBSScaleCallback				( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->SBSScalePressed(); }
 void ChangeSeatCallback				( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->ChangeSeatPressed(); }
 void DistanceCallback				( SliderComponent *button, void *object, const float value ) { ( ( MoviePlayerView * )object )->DistancePressed( value ); }
 void SizeCallback					( SliderComponent *button, void *object, const float value ) { ( ( MoviePlayerView * )object )->SizePressed( value ); }
 bool IsChangeSeatsEnabledCallback	( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->IsChangeSeatsEnabled(); }
+bool SBSOffIsSelectedCallback		( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->SBSOffIsSelected(); }
+bool SBSRiftIsSelectedCallback		( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->SBSRiftIsSelected(); }
+bool SBSCropIsSelectedCallback		( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->SBSCropIsSelected(); }
+bool SBSScaleIsSelectedCallback		( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->SBSScaleIsSelected(); }
 
 void LatencyCallback				( SliderComponent *button, void *object, const float value ) { ( ( MoviePlayerView * )object )->LatencyPressed( value ); }
 void VRXCallback					( SliderComponent *button, void *object, const float value ) { ( ( MoviePlayerView * )object )->VRXPressed( value ); }
@@ -757,11 +767,33 @@ void MoviePlayerView::CreateMenu( OvrGuiSys & guiSys )
 	ScreenMenu->SetLocalPosition( PixelPos( 0, MENU_TOP, 1 ) );
 	ScreenMenu->SetVisible(false);
 
-	ButtonSBS.AddToMenu( guiSys, PlaybackControlsMenu, ScreenMenu );
-	ButtonSBS.SetLocalPosition( PixelPos( MENU_X * -2, MENU_Y * 2.25, 1 ) );
-	ButtonSBS.SetText( CinemaStrings::ButtonText_ButtonSBS );
-	TextButtonHelper(ButtonSBS);
-	ButtonSBS.SetOnClick( SBSCallback, this);
+	ButtonSBSOff.AddToMenu( guiSys, PlaybackControlsMenu, ScreenMenu );
+	ButtonSBSOff.SetLocalPosition( PixelPos( MENU_X * -2, MENU_Y * 2.25, 1 ) );
+	ButtonSBSOff.SetText( CinemaStrings::ButtonText_ButtonSBSOff );
+	TextButtonHelper(ButtonSBSOff);
+	ButtonSBSOff.SetOnClick( SBSOffCallback, this);
+	ButtonSBSOff.SetIsSelected( SBSOffIsSelectedCallback, this);
+
+	ButtonSBSRift.AddToMenu( guiSys, PlaybackControlsMenu, ScreenMenu );
+	ButtonSBSRift.SetLocalPosition( PixelPos( MENU_X * -2, MENU_Y * 3.25, 1 ) );
+	ButtonSBSRift.SetText( CinemaStrings::ButtonText_ButtonSBSRift );
+	TextButtonHelper(ButtonSBSRift);
+	ButtonSBSRift.SetOnClick( SBSRiftCallback, this);
+	ButtonSBSRift.SetIsSelected( SBSRiftIsSelectedCallback, this);
+
+	ButtonSBSCrop.AddToMenu( guiSys, PlaybackControlsMenu, ScreenMenu );
+	ButtonSBSCrop.SetLocalPosition( PixelPos( MENU_X * 0, MENU_Y * 3.25, 1 ) );
+	ButtonSBSCrop.SetText( CinemaStrings::ButtonText_ButtonSBSCrop );
+	TextButtonHelper(ButtonSBSCrop);
+	ButtonSBSCrop.SetOnClick( SBSCropCallback, this);
+	ButtonSBSCrop.SetIsSelected( SBSCropIsSelectedCallback, this);
+
+	ButtonSBSScale.AddToMenu( guiSys, PlaybackControlsMenu, ScreenMenu );
+	ButtonSBSScale.SetLocalPosition( PixelPos( MENU_X * 2, MENU_Y * 3.25, 1 ) );
+	ButtonSBSScale.SetText( CinemaStrings::ButtonText_ButtonSBSScale );
+	TextButtonHelper(ButtonSBSScale);
+	ButtonSBSScale.SetOnClick( SBSScaleCallback, this);
+	ButtonSBSScale.SetIsSelected( SBSScaleIsSelectedCallback, this);
 
 	ButtonChangeSeat.AddToMenu( guiSys, PlaybackControlsMenu, ScreenMenu );
 	ButtonChangeSeat.SetLocalPosition( PixelPos( MENU_X * -2, MENU_Y * 1.25, 1 ) );
@@ -1882,27 +1914,57 @@ void MoviePlayerView::VRYPressed(const float value)
 	VRYSlider.SetValue( value );
 }
 
-void MoviePlayerView::SBSPressed()
+void MoviePlayerView::SBSOffPressed()
 {
-	switch(Cinema.SceneMgr.CurrentMovieFormat)
+	if(Cinema.SceneMgr.CurrentMovieFormat == VT_LEFT_RIGHT_3D)
 	{
-	case VT_2D:
-		Cinema.SceneMgr.CurrentMovieFormat = VT_LEFT_RIGHT_3D;
-		Cinema.SceneMgr.CurrentMovieWidth /= 2;
-		break;
-	case VT_LEFT_RIGHT_3D:
-		Cinema.SceneMgr.CurrentMovieFormat = VT_LEFT_RIGHT_3D_CROP;
 		Cinema.SceneMgr.CurrentMovieWidth *= 2;
-		break;
-	case VT_LEFT_RIGHT_3D_CROP:
-		Cinema.SceneMgr.CurrentMovieFormat = VT_LEFT_RIGHT_3D_FULL;
-		break;
-	case VT_LEFT_RIGHT_3D_FULL:
-		Cinema.SceneMgr.CurrentMovieFormat = VT_2D;
-		break;
-	default:
-		Cinema.SceneMgr.CurrentMovieFormat = VT_2D;
 	}
+	Cinema.SceneMgr.CurrentMovieFormat = VT_2D;
+	UpdateMenus();
+}
+void MoviePlayerView::SBSRiftPressed()
+{
+	if(Cinema.SceneMgr.CurrentMovieFormat != VT_LEFT_RIGHT_3D)
+	{
+		Cinema.SceneMgr.CurrentMovieWidth /= 2;
+	}
+	Cinema.SceneMgr.CurrentMovieFormat = VT_LEFT_RIGHT_3D;
+	UpdateMenus();
+}
+void MoviePlayerView::SBSCropPressed()
+{
+	if(Cinema.SceneMgr.CurrentMovieFormat == VT_LEFT_RIGHT_3D)
+	{
+		Cinema.SceneMgr.CurrentMovieWidth *= 2;
+	}
+	Cinema.SceneMgr.CurrentMovieFormat = VT_LEFT_RIGHT_3D_CROP;
+	UpdateMenus();
+}
+void MoviePlayerView::SBSScalePressed()
+{
+	if(Cinema.SceneMgr.CurrentMovieFormat == VT_LEFT_RIGHT_3D)
+	{
+		Cinema.SceneMgr.CurrentMovieWidth *= 2;
+	}
+	Cinema.SceneMgr.CurrentMovieFormat = VT_LEFT_RIGHT_3D_FULL;
+	UpdateMenus();
+}
+bool MoviePlayerView::SBSOffIsSelected()
+{
+	return Cinema.SceneMgr.CurrentMovieFormat == VT_2D;
+}
+bool MoviePlayerView::SBSRiftIsSelected()
+{
+	return Cinema.SceneMgr.CurrentMovieFormat == VT_LEFT_RIGHT_3D;
+}
+bool MoviePlayerView::SBSCropIsSelected()
+{
+	return Cinema.SceneMgr.CurrentMovieFormat == VT_LEFT_RIGHT_3D_CROP;
+}
+bool MoviePlayerView::SBSScaleIsSelected()
+{
+	return Cinema.SceneMgr.CurrentMovieFormat == VT_LEFT_RIGHT_3D_FULL;
 }
 
 bool MoviePlayerView::Button1080IsSelected()
@@ -1968,11 +2030,15 @@ void MoviePlayerView::UpdateMenus()
 
 	Button1080.UpdateButtonState();
 	Button720.UpdateButtonState();
+	Button480.UpdateButtonState();
 	Button60FPS.UpdateButtonState();
 	Button30FPS.UpdateButtonState();
 	ButtonHostAudio.UpdateButtonState();
 
-	ButtonSBS.UpdateButtonState();
+	ButtonSBSOff.UpdateButtonState();
+	ButtonSBSRift.UpdateButtonState();
+	ButtonSBSCrop.UpdateButtonState();
+	ButtonSBSScale.UpdateButtonState();
 	ButtonChangeSeat.UpdateButtonState();
 
 	ButtonSaveApp.UpdateButtonState();

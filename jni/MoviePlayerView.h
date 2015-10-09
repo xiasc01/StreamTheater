@@ -270,7 +270,10 @@ private:
 
 	UIButton				ScreenMenuButton;
 	UIContainer *			ScreenMenu;
-	UITextButton			ButtonSBS;
+	UITextButton			ButtonSBSOff;
+	UITextButton			ButtonSBSRift;
+	UITextButton			ButtonSBSCrop;
+	UITextButton			ButtonSBSScale;
 	UITextButton			ButtonChangeSeat;
 
 	UILabel					ScreenDistance;
@@ -475,8 +478,14 @@ private:
 
 	friend void		ChangeSeatCallback( UITextButton *button, void *object );
 	void			ChangeSeatPressed();
-	friend void		SBSCallback( UITextButton *button, void *object );
-	void			SBSPressed();
+	friend void		SBSOffCallback( UITextButton *button, void *object );
+	void			SBSOffPressed();
+	friend void		SBSRiftCallback( UITextButton *button, void *object );
+	void			SBSRiftPressed();
+	friend void		SBSCropCallback( UITextButton *button, void *object );
+	void			SBSCropPressed();
+	friend void		SBSScaleCallback( UITextButton *button, void *object );
+	void			SBSScalePressed();
 	friend void		DistanceCallback( SliderComponent *button, void *object, const float value );
 	void			DistancePressed( const float value);
 	friend void		SizeCallback( SliderComponent *button, void *object, const float value );
@@ -484,6 +493,16 @@ private:
 
 	friend bool		IsChangeSeatsEnabledCallback( UITextButton *button, void *object );
 	bool			IsChangeSeatsEnabled();
+
+	friend bool		SBSOffIsSelectedCallback( UITextButton *button, void *object );
+	bool			SBSOffIsSelected();
+	friend bool		SBSRiftIsSelectedCallback( UITextButton *button, void *object );
+	bool			SBSRiftIsSelected();
+	friend bool		SBSCropIsSelectedCallback( UITextButton *button, void *object );
+	bool			SBSCropIsSelected();
+	friend bool		SBSScaleIsSelectedCallback( UITextButton *button, void *object );
+	bool			SBSScaleIsSelected();
+
 
 
 	friend void		SpeedCallback( UITextButton *button, void *object );

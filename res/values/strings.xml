@@ -122,7 +122,10 @@
 	<string name="ButtonText_Button60FPS">60 FPS</string>
 	<string name="ButtonText_Button30FPS">30 FPS</string>
 	<string name="ButtonText_ButtonHostAudio">Host Audio</string>
-	<string name="ButtonText_ButtonSBS">SBS</string>
+	<string name="ButtonText_ButtonSBSOff">No 3d</string>
+	<string name="ButtonText_ButtonSBSRift">SBS 8:9</string>
+	<string name="ButtonText_ButtonSBSScale">SBS Scale</string>
+	<string name="ButtonText_ButtonSBSCrop">SBS Crop</string>
 	<string name="ButtonText_ButtonChangeSeat">Change Seat</string>
 	<string name="ButtonText_ButtonDistance">Distance</string>
 	<string name="ButtonText_ButtonSize">Scale</string>
