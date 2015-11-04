@@ -18,6 +18,8 @@ of patent rights can be found in the PATENTS file in the same directory.
 #include "Native.h"
 #include "CinemaStrings.h"
 
+#include <unistd.h>
+
 //=======================================================================================
 
 namespace VRMatterStreamTheater {
@@ -61,6 +63,35 @@ void CinemaApp::Configure( ovrSettings & settings )
 	// The CPU clock should ramp up above the minimum when necessary.
 	settings.ModeParms.CpuLevel = 1;
 	settings.ModeParms.GpuLevel = 2;
+
+	// Allow users to specify a file to override the CPU and GPU settings
+	String	outPath;
+	const bool validDir = app->GetStoragePaths().GetPathIfValidPermission(
+			EST_PRIMARY_EXTERNAL_STORAGE, EFT_FILES, "", W_OK | R_OK, outPath );
+	if(validDir)
+	{
+		String filePath = outPath + "cpu_gpu.txt";
+
+		FILE * fp = fopen( filePath, "rb" );	// check for existence
+		if ( fp != NULL )
+		{
+			int cpu = 0;
+			int gpu = 0;
+			int count = fscanf( fp, "%d %d", &cpu, &gpu);
+			fclose( fp );
+
+			if (count == 2 && cpu >= 1 && cpu <= 3 && gpu >= 1 && gpu <= 3)
+			{
+				settings.ModeParms.CpuLevel = cpu;
+				settings.ModeParms.GpuLevel = gpu;
+				LOG("Overriding CPU to %d and GPU to %d!", cpu, gpu);
+			}
+			else
+			{
+				LOG("Malformed cpu_gpu.txt in data files directory!");
+			}
+		}
+	}
 
 	// when the app is throttled, go to the platform UI and display a
 	// dismissable warning. On return to the app, force 30Hz timewarp.

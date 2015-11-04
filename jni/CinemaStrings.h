@@ -79,8 +79,10 @@ public:
 	static String	ButtonText_ButtonGaze;
 	static String	ButtonText_ButtonTrackpad;
 	static String	ButtonText_LabelTrackpadScale;
+	static String	ButtonText_LabelGamepadScale;
 	static String	ButtonText_Button1080;
 	static String	ButtonText_ButtonOff;
+	static String	ButtonText_ButtonGamepad;
 	static String	ButtonText_LabelGazeScale;
 	static String	ButtonText_LabelLatency;
 	static String	ButtonText_LabelVRXScale;

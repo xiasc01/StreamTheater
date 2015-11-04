@@ -89,6 +89,8 @@ public class MainActivity extends VrActivity implements SurfaceHolder.Callback,
 	public PcSelector		pcSelector = null;
 	public AppSelector		appSelector = null;
 	public StreamInterface 	streamInterface = null;
+	
+	private boolean		moonlightControllerHandling = true;
 
 	@Override
 	protected void onCreate( Bundle savedInstanceState ) 
@@ -443,7 +445,7 @@ public class MainActivity extends VrActivity implements SurfaceHolder.Callback,
 	@Override
 	public boolean dispatchGenericMotionEvent(MotionEvent event) {
 		if ((event.getSource() & InputDevice.SOURCE_CLASS_JOYSTICK) != 0) {
-			if(streamInterface != null && streamInterface.isConnected())
+			if(streamInterface != null && streamInterface.isConnected() && moonlightControllerHandling)
 			{
 				boolean ret = streamInterface.handleMotionEvent(event);
 				if (ret) return true;
@@ -453,16 +455,19 @@ public class MainActivity extends VrActivity implements SurfaceHolder.Callback,
 	}
 	
 	public boolean dispatchKeyEvent(KeyEvent event) {
-		Log.e("INPUT", "KeyEvent source: " + event.getSource());
-		if ((event.getSource() & ( InputDevice.SOURCE_GAMEPAD | InputDevice.SOURCE_KEYBOARD)) != 0) {
+		if ((event.getSource() & ( InputDevice.SOURCE_KEYBOARD | InputDevice.SOURCE_GAMEPAD)) != 0) 
+		{
 			if(streamInterface != null && streamInterface.isConnected())
 			{
-				boolean ret = false;
-				if (event.getAction() == KeyEvent.ACTION_DOWN)
-					ret = streamInterface.onKeyDown(event.getKeyCode(), event);
-				else if (event.getAction() == KeyEvent.ACTION_UP)
-					ret = streamInterface.onKeyUp(event.getKeyCode(), event);
-				if (ret) return true;
+				if(moonlightControllerHandling || !KeyEvent.isGamepadButton(event.getKeyCode()))
+				{	
+					boolean ret = false;
+					if (event.getAction() == KeyEvent.ACTION_DOWN)
+						ret = streamInterface.onKeyDown(event.getKeyCode(), event);
+					else if (event.getAction() == KeyEvent.ACTION_UP)
+						ret = streamInterface.onKeyUp(event.getKeyCode(), event);
+					if (ret) return true;
+				}
 			}
 		}
 		return super.dispatchKeyEvent(event);
@@ -580,6 +585,24 @@ public class MainActivity extends VrActivity implements SurfaceHolder.Callback,
 		{
 			Log.e( TAG, "Closing app failed: " + e.getMessage() );
 			e.printStackTrace();
+		}
+	}
+	
+	public void controllerHandledByMoonlight(final boolean handleIt)
+	{
+		moonlightControllerHandling = handleIt;
+	}
+	
+	public void sendKeyboard(final int keycode, final boolean down)
+	{
+		KeyEvent event = new KeyEvent(down? KeyEvent.ACTION_DOWN : KeyEvent.ACTION_UP, keycode);
+		if(down)
+		{
+			streamInterface.onKeyDown(event.getKeyCode(), event);
+		}
+		else
+		{
+			streamInterface.onKeyUp(event.getKeyCode(), event);
 		}
 	}
 }

@@ -110,9 +110,11 @@
 	
 	<string name="ButtonText_ButtonGaze">Gaze</string>
 	<string name="ButtonText_ButtonTrackpad">Trackpad</string>
+	<string name="ButtonText_ButtonGamepad">Gamepad</string>
 	<string name="ButtonText_ButtonOff">Off</string>
 	<string name="ButtonText_LabelGazeScale">Gaze Scale</string>
 	<string name="ButtonText_LabelTrackpadScale">Trackpad Scale</string>
+	<string name="ButtonText_LabelGamepadScale">Gamepad Scale</string>
 	<string name="ButtonText_LabelLatency">VR Screen Lag</string>
 	<string name="ButtonText_LabelVRXScale">Horizontal Scale</string>
 	<string name="ButtonText_LabelVRYScale">Vertical Scale</string>

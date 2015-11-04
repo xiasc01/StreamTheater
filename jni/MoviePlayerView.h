@@ -50,8 +50,21 @@ enum MouseMode
 {
 	MOUSE_OFF = 0,
 	MOUSE_GAZE,
-	MOUSE_TRACKPAD
+	MOUSE_TRACKPAD,
+	MOUSE_GAMEPAD
 };
+
+#define GPMOUSE_B1 1024
+#define GPMOUSE_NUM_BUTTONS 5
+#define GPMOUSE_SCROLL_UP 2048
+#define GPMOUSE_SCROLL_DOWN 2049
+#define GPMOUSE_AXIS_X_STD 4096
+#define GPMOUSE_AXIS_Y_STD 4097
+#define GPMOUSE_AXIS_X_INV 4098
+#define GPMOUSE_AXIS_Y_INV 4099
+#define GPMOUSE_COMFORT_LEFT 8192
+#define GPMOUSE_COMFORT_RIGHT 8193
+#define GPMOUSE_TOGGLE_VR_SCREEN_LOCK 8294
 
 class CinemaApp;
 
@@ -244,6 +257,7 @@ private:
 	UIContainer *			MouseMenu;
 	UITextButton			ButtonGaze;
 	UITextButton			ButtonTrackpad;
+	UITextButton			ButtonGamepad;
 	UITextButton			ButtonOff;
 	UILabel					GazeScale;
 	UIImage					GazeSliderBackground;
@@ -258,6 +272,13 @@ private:
 	UILabel 				TrackpadCurrentSetting;
 	UILabel 				TrackpadNewSetting;
 	SliderComponent 		TrackpadSlider;
+
+	UILabel					GamepadScale;
+	UIImage					GamepadSliderBackground;
+	UIImage					GamepadSliderIndicator;
+	UILabel 				GamepadCurrentSetting;
+	UILabel 				GamepadNewSetting;
+	SliderComponent 		GamepadSlider;
 
 	UIButton				StreamMenuButton;
 	UIContainer *			StreamMenu;
@@ -348,6 +369,7 @@ private:
 	MouseMode				mouseMode;
 	float					gazeScaleValue;
 	float					trackpadScaleValue;
+	float					gamepadScaleValue;
 
 	int						streamWidth;
 	int 					streamHeight;
@@ -358,6 +380,8 @@ private:
 	float					GazeMax;
 	float					TrackpadMin;
 	float					TrackpadMax;
+	float					GamepadMin;
+	float					GamepadMax;
 	float					VoidScreenDistanceMin;
 	float					VoidScreenDistanceMax;
 	float					VoidScreenScaleMin;
@@ -382,6 +406,12 @@ private:
 	float					VRXScaleMin;
 	float					VRYScaleMax;
 	float					VRYScaleMin;
+
+	Array<String>			gamepadButtonNames;
+	Array<int>				gamepadKeyCodes;
+	Array<int>				gamepadButtonSettings;
+	int						gamepadLTriggerSetting;
+	int						gamepadRTriggerSetting;
 
 private:
 	void					TextButtonHelper(UITextButton& button, float scale = 1.0f, int w = 320, int h = 120);
@@ -428,17 +458,23 @@ private:
 	void			GazePressed();
 	friend void		TrackpadCallback( UITextButton *button, void *object );
 	void			TrackpadPressed();
+	friend void		GamepadCallback( UITextButton *button, void *object );
+	void			GamepadPressed();
 	friend void		OffCallback( UITextButton *button, void *object );
 	void			OffPressed();
 	friend void		GazeScaleCallback( SliderComponent *button, void *object, const float value );
 	void			GazeScalePressed(const float value);
 	friend void		TrackpadScaleCallback( SliderComponent *button, void *object, const float value );
 	void			TrackpadScalePressed(const float value);
+	friend void		GamepadScaleCallback( SliderComponent *button, void *object, const float value );
+	void			GamepadScalePressed(const float value);
 
 	friend bool		GazeActiveCallback( UITextButton *button, void *object );
 	bool			GazeActive();
 	friend bool		TrackpadActiveCallback( UITextButton *button, void *object );
 	bool			TrackpadActive();
+	friend bool		GamepadActiveCallback( UITextButton *button, void *object );
+	bool			GamepadActive();
 	friend bool		OffActiveCallback( UITextButton *button, void *object );
 	bool			OffActive();
 
@@ -517,13 +553,18 @@ private:
 
 	void					LoadSettings(Settings* set);
 	void					InitializeSettings();
+	void					InitializeGamepadMouse();
+	void					WriteGamepadSettings(Settings* set);
+	void					LoadGamepadSettings(Settings* set);
 	void					UpdateMenus();
 
 	void 					UpdateUI( const VrFrame & vrFrame );
 	void 					CheckInput( const VrFrame & vrFrame );
 	void					HandleGazeMouse( const VrFrame & vrFrame, bool onscreen, const Vector2f screenCursor );
 	void					HandleTrackpadMouse( const VrFrame & vrFrame );
+	void					HandleGamepadMouse( const VrFrame & vrFrame );
 	void 					CheckDebugControls( const VrFrame & vrFrame );
+	void					DoGamepadEvent(int code, bool down);
 
 	void 					ShowUI();
 	void 					HideUI();

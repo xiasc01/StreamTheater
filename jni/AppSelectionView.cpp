@@ -101,6 +101,7 @@ AppSelectionView::AppSelectionView( CinemaApp &cinema ) :
 	newPCbg( Cinema ),
 	ButtonGaze( NULL ),
 	ButtonTrackpad( NULL ),
+	ButtonGamepad( NULL ),
 	ButtonOff( NULL ),
 	Button1080( NULL ),
 	Button720( NULL ),
@@ -743,6 +744,14 @@ void AppSelectionView::CreateMenu( OvrGuiSys & guiSys )
 	ButtonTrackpad->SetOnClick( SettingsCallback, this);
 	ButtonTrackpad->SetIsSelected( SettingsSelectedCallback, this);
 
+	ButtonGamepad = new UITextButton( Cinema );
+	ButtonGamepad->AddToMenu( guiSys, Menu, settingsMenu );
+	ButtonGamepad->SetLocalPosition( Vector3f( column2, rowpos += rowinc, 0.1f ) );
+	ButtonGamepad->SetText( CinemaStrings::ButtonText_ButtonGamepad );
+	TextButtonHelper(ButtonGamepad);
+	ButtonGamepad->SetOnClick( SettingsCallback, this);
+	ButtonGamepad->SetIsSelected( SettingsSelectedCallback, this);
+
 	ButtonOff = new UITextButton( Cinema );
 	ButtonOff->AddToMenu( guiSys, Menu, settingsMenu );
 	ButtonOff->SetLocalPosition( Vector3f( column2, rowpos += rowinc, 0.1f ) );
@@ -796,7 +805,7 @@ void AppSelectionView::SettingsButtonPressed()
 
 	String	outPath;
 	const bool validDir = Cinema.app->GetStoragePaths().GetPathIfValidPermission(
-					EST_INTERNAL_STORAGE, EFT_FILES, "", W_OK | R_OK, outPath );
+			EST_PRIMARY_EXTERNAL_STORAGE, EFT_FILES, "", W_OK | R_OK, outPath );
 
 	if(validDir)
 	{
@@ -829,6 +838,7 @@ void AppSelectionView::SettingsButtonPressed()
 
 	ButtonGaze->UpdateButtonState();
 	ButtonTrackpad->UpdateButtonState();
+	ButtonGamepad->UpdateButtonState();
 	ButtonOff->UpdateButtonState();
 	Button1080->UpdateButtonState();
 	Button720->UpdateButtonState();
@@ -851,6 +861,10 @@ void AppSelectionView::SettingsPressed( UITextButton *button)
 	else if( button->GetText() == CinemaStrings::ButtonText_ButtonTrackpad )
 	{
 		mouseMode = MOUSE_TRACKPAD;
+	}
+	else if( button->GetText() == CinemaStrings::ButtonText_ButtonGamepad )
+	{
+		mouseMode = MOUSE_GAMEPAD;
 	}
 	else if( button->GetText() == CinemaStrings::ButtonText_ButtonOff )
 	{
@@ -891,6 +905,7 @@ void AppSelectionView::SettingsPressed( UITextButton *button)
 
 	ButtonGaze->UpdateButtonState();
 	ButtonTrackpad->UpdateButtonState();
+	ButtonGamepad->UpdateButtonState();
 	ButtonOff->UpdateButtonState();
 	Button1080->UpdateButtonState();
 	Button720->UpdateButtonState();
@@ -911,6 +926,10 @@ bool AppSelectionView::SettingsIsSelected( UITextButton *button)
 	else if( button->GetText() == CinemaStrings::ButtonText_ButtonTrackpad )
 	{
 		return mouseMode == MOUSE_TRACKPAD;
+	}
+	else if( button->GetText() == CinemaStrings::ButtonText_ButtonGamepad )
+	{
+		return mouseMode == MOUSE_GAMEPAD;
 	}
 	else if( button->GetText() == CinemaStrings::ButtonText_ButtonOff )
 	{

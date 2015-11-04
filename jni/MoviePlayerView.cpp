@@ -81,6 +81,7 @@ MoviePlayerView::MoviePlayerView( CinemaApp &cinema ) :
 	MouseMenu( NULL ),
 	ButtonGaze( Cinema ),
 	ButtonTrackpad( Cinema ),
+	ButtonGamepad( Cinema ),
 	ButtonOff( Cinema ),
 	GazeScale( Cinema ),
 	GazeSliderBackground( Cinema ),
@@ -94,6 +95,12 @@ MoviePlayerView::MoviePlayerView( CinemaApp &cinema ) :
 	TrackpadCurrentSetting( Cinema ),
 	TrackpadNewSetting( Cinema ),
 	TrackpadSlider(),
+	GamepadScale( Cinema ),
+	GamepadSliderBackground( Cinema ),
+	GamepadSliderIndicator( Cinema ),
+	GamepadCurrentSetting( Cinema ),
+	GamepadNewSetting( Cinema ),
+	GamepadSlider(),
 	StreamMenuButton( Cinema ),
 	StreamMenu( NULL ),
 	Button1080( Cinema ),
@@ -170,6 +177,7 @@ MoviePlayerView::MoviePlayerView( CinemaApp &cinema ) :
 	mouseMode(MOUSE_GAZE),
 	gazeScaleValue(1.05),
 	trackpadScaleValue(2.0),
+	gamepadScaleValue(20.0),
 	streamWidth(1280),
 	streamHeight(720),
 	streamFPS(60),
@@ -178,6 +186,8 @@ MoviePlayerView::MoviePlayerView( CinemaApp &cinema ) :
 	GazeMax(1.58),
 	TrackpadMin(-4.0),
 	TrackpadMax(4.0),
+	GamepadMin(1.0),
+	GamepadMax(50.0),
 	VoidScreenDistanceMin(0.1),
 	VoidScreenDistanceMax(3.0),
 	VoidScreenScaleMin(-3.0),
@@ -196,7 +206,12 @@ MoviePlayerView::MoviePlayerView( CinemaApp &cinema ) :
 	VRXScaleMax( 6.0f ),
 	VRXScaleMin( 0.0f ),
 	VRYScaleMax( 6.0f ),
-	VRYScaleMin( 0.0f )
+	VRYScaleMin( 0.0f ),
+	gamepadButtonNames(),
+	gamepadKeyCodes(),
+	gamepadButtonSettings(),
+	gamepadLTriggerSetting(0),
+	gamepadRTriggerSetting(0)
 {
 }
 
@@ -267,11 +282,14 @@ void Load3Callback					( UITextButton *button, void *object ) { ( ( MoviePlayerV
 
 void GazeCallback					( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->GazePressed(); }
 void TrackpadCallback				( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->TrackpadPressed(); }
+void GamepadCallback				( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->GamepadPressed(); }
 void OffCallback					( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->OffPressed(); }
 void GazeScaleCallback				( SliderComponent *button, void *object, const float value ) { ( ( MoviePlayerView * )object )->GazeScalePressed( value ); }
 void TrackpadScaleCallback			( SliderComponent *button, void *object, const float value ) { ( ( MoviePlayerView * )object )->TrackpadScalePressed( value ); }
+void GamepadScaleCallback			( SliderComponent *button, void *object, const float value ) { ( ( MoviePlayerView * )object )->GamepadScalePressed( value ); }
 bool GazeActiveCallback				( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->GazeActive(); }
 bool TrackpadActiveCallback			( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->TrackpadActive(); }
+bool GamepadActiveCallback			( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->GamepadActive(); }
 bool OffActiveCallback				( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->OffActive(); }
 
 void Button1080Callback				( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->Button1080pPressed(); }
@@ -361,11 +379,149 @@ void MoviePlayerView::SetUpSlider(OvrGuiSys & guiSys, UIWidget *parent, SliderCo
 
 }
 
+void MoviePlayerView::InitializeGamepadMouse()
+{
+	gamepadButtonNames.Clear();
+	gamepadButtonNames.PushBack( "BUTTON_A" );
+	gamepadButtonNames.PushBack( "BUTTON_B" );
+	gamepadButtonNames.PushBack( "BUTTON_X" );
+	gamepadButtonNames.PushBack( "BUTTON_Y" );
+	gamepadButtonNames.PushBack( "BUTTON_START" );
+	gamepadButtonNames.PushBack( "BUTTON_BACK" );
+	gamepadButtonNames.PushBack( "BUTTON_SELECT" );
+	gamepadButtonNames.PushBack( "BUTTON_MENU" );
+	gamepadButtonNames.PushBack( "BUTTON_RIGHT_TRIGGER" );
+	gamepadButtonNames.PushBack( "BUTTON_LEFT_TRIGGER" );
+	gamepadButtonNames.PushBack( "BUTTON_DPAD_UP" );
+	gamepadButtonNames.PushBack( "BUTTON_DPAD_DOWN" );
+	gamepadButtonNames.PushBack( "BUTTON_DPAD_LEFT" );
+	gamepadButtonNames.PushBack( "BUTTON_DPAD_RIGHT" );
+	gamepadButtonNames.PushBack( "BUTTON_THUMBL" );
+	gamepadButtonNames.PushBack( "BUTTON_THUMBR" );
+	gamepadButtonNames.PushBack( "BUTTON_LSTICK_UP" );
+	gamepadButtonNames.PushBack( "BUTTON_LSTICK_DOWN" );
+	gamepadButtonNames.PushBack( "BUTTON_LSTICK_LEFT" );
+	gamepadButtonNames.PushBack( "BUTTON_LSTICK_RIGHT" );
+	gamepadButtonNames.PushBack( "BUTTON_RSTICK_UP" );
+	gamepadButtonNames.PushBack( "BUTTON_RSTICK_DOWN" );
+	gamepadButtonNames.PushBack( "BUTTON_RSTICK_LEFT" );
+	gamepadButtonNames.PushBack( "BUTTON_RSTICK_RIGHT" );
+
+	gamepadKeyCodes.Clear();
+	gamepadKeyCodes.PushBack( BUTTON_A );
+	gamepadKeyCodes.PushBack( BUTTON_B );
+	gamepadKeyCodes.PushBack( BUTTON_X );
+	gamepadKeyCodes.PushBack( BUTTON_Y );
+	gamepadKeyCodes.PushBack( BUTTON_START );
+	gamepadKeyCodes.PushBack( BUTTON_BACK );
+	gamepadKeyCodes.PushBack( BUTTON_SELECT );
+	gamepadKeyCodes.PushBack( BUTTON_MENU );
+	gamepadKeyCodes.PushBack( BUTTON_RIGHT_TRIGGER );
+	gamepadKeyCodes.PushBack( BUTTON_LEFT_TRIGGER );
+	gamepadKeyCodes.PushBack( BUTTON_DPAD_UP );
+	gamepadKeyCodes.PushBack( BUTTON_DPAD_DOWN );
+	gamepadKeyCodes.PushBack( BUTTON_DPAD_LEFT );
+	gamepadKeyCodes.PushBack( BUTTON_DPAD_RIGHT );
+	gamepadKeyCodes.PushBack( BUTTON_THUMBL );
+	gamepadKeyCodes.PushBack( BUTTON_THUMBR );
+	gamepadKeyCodes.PushBack( BUTTON_LSTICK_UP );
+	gamepadKeyCodes.PushBack( BUTTON_LSTICK_DOWN );
+	gamepadKeyCodes.PushBack( BUTTON_LSTICK_LEFT );
+	gamepadKeyCodes.PushBack( BUTTON_LSTICK_RIGHT );
+	gamepadKeyCodes.PushBack( BUTTON_RSTICK_UP );
+	gamepadKeyCodes.PushBack( BUTTON_RSTICK_DOWN );
+	gamepadKeyCodes.PushBack( BUTTON_RSTICK_LEFT );
+	gamepadKeyCodes.PushBack( BUTTON_RSTICK_RIGHT );
+
+	gamepadButtonSettings.Clear();
+	gamepadButtonSettings.PushBack( AKEYCODE_SPACE );
+	gamepadButtonSettings.PushBack( AKEYCODE_E );
+	gamepadButtonSettings.PushBack( AKEYCODE_SHIFT_LEFT );
+	gamepadButtonSettings.PushBack( AKEYCODE_Q );
+	gamepadButtonSettings.PushBack( AKEYCODE_ESCAPE );
+	gamepadButtonSettings.PushBack( 0 );
+	gamepadButtonSettings.PushBack( 0 );
+	gamepadButtonSettings.PushBack( 0 );
+	gamepadButtonSettings.PushBack( GPMOUSE_B1 + 2 );
+	gamepadButtonSettings.PushBack( GPMOUSE_SCROLL_UP );
+	gamepadButtonSettings.PushBack( AKEYCODE_1 );
+	gamepadButtonSettings.PushBack( AKEYCODE_3 );
+	gamepadButtonSettings.PushBack( AKEYCODE_2 );
+	gamepadButtonSettings.PushBack( AKEYCODE_4 );
+	gamepadButtonSettings.PushBack( 0 );
+	gamepadButtonSettings.PushBack( 0 );
+	gamepadButtonSettings.PushBack( AKEYCODE_W );
+	gamepadButtonSettings.PushBack( AKEYCODE_S );
+	gamepadButtonSettings.PushBack( AKEYCODE_A );
+	gamepadButtonSettings.PushBack( AKEYCODE_D );
+	gamepadButtonSettings.PushBack( GPMOUSE_AXIS_X_STD );
+	gamepadButtonSettings.PushBack( GPMOUSE_AXIS_X_STD );
+	gamepadButtonSettings.PushBack( GPMOUSE_AXIS_Y_STD );
+	gamepadButtonSettings.PushBack( GPMOUSE_AXIS_Y_STD );
+
+	gamepadLTriggerSetting = GPMOUSE_SCROLL_DOWN;
+	gamepadRTriggerSetting = GPMOUSE_B1;
+
+	String	outPath;
+	const bool validDir = Cinema.app->GetStoragePaths().GetPathIfValidPermission(
+			EST_PRIMARY_EXTERNAL_STORAGE, EFT_FILES, "", W_OK | R_OK, outPath );
+
+	if(validDir)
+	{
+		bool defaultSettingsExists = false;
+		String gamepadDefaultsFilename = outPath + "gamepadMouseDefaults.json";
+		FILE * fp = fopen( gamepadDefaultsFilename, "rb" );	// check for existence
+		if ( fp != NULL )
+		{
+			fclose( fp );
+			defaultSettingsExists = true;
+		}
+		else
+		{
+			Settings gamepadSettings(gamepadDefaultsFilename);
+			WriteGamepadSettings(&gamepadSettings);
+			gamepadSettings.SaveAll();
+		}
+
+		if(defaultSettingsExists)
+		{
+			Settings gamepadSettings(gamepadDefaultsFilename);
+			LoadGamepadSettings(&gamepadSettings);
+		}
+	}
+}
+
+void MoviePlayerView::LoadGamepadSettings(Settings* set)
+{
+	for(int i=0; i < gamepadButtonNames.GetSizeI(); i++)
+	{
+		int temp=0;
+		bool exists = set->GetVal(gamepadButtonNames[i],&temp);
+		if(exists)
+		{
+			gamepadButtonSettings[i] = temp;
+		}
+	}
+	set->GetVal("BUTTON_RIGHT_TRIGGER_ANALOG", &gamepadRTriggerSetting);
+	set->GetVal("BUTTON_LEFT_TRIGGER_ANALOG", &gamepadLTriggerSetting);
+}
+
+void MoviePlayerView::WriteGamepadSettings(Settings* set)
+{
+	for(int i=0; i < gamepadButtonNames.GetSizeI(); i++)
+	{
+		set->SetVal(gamepadButtonNames[i],gamepadButtonSettings[i]);
+	}
+
+	set->SetVal("BUTTON_RIGHT_TRIGGER_ANALOG", gamepadRTriggerSetting);
+	set->SetVal("BUTTON_LEFT_TRIGGER_ANALOG", gamepadLTriggerSetting);
+}
+
 void MoviePlayerView::InitializeSettings()
 {
 	String	outPath;
 	const bool validDir = Cinema.app->GetStoragePaths().GetPathIfValidPermission(
-					EST_INTERNAL_STORAGE, EFT_FILES, "", W_OK | R_OK, outPath );
+			EST_PRIMARY_EXTERNAL_STORAGE, EFT_FILES, "", W_OK | R_OK, outPath );
 
 	if(validDir)
 	{
@@ -383,6 +539,7 @@ void MoviePlayerView::InitializeSettings()
 
 			defaultSettings->Define("GazeScale", &gazeScaleValue);
 			defaultSettings->Define("TrackpadScale", &trackpadScaleValue);
+			defaultSettings->Define("GamepadMouseScale", &gamepadScaleValue);
 
 			defaultSettings->Define("VoidScreenDistance", &Cinema.SceneMgr.FreeScreenDistance);
 			defaultSettings->Define("VoidScreenScale", &Cinema.SceneMgr.FreeScreenScale);
@@ -391,6 +548,8 @@ void MoviePlayerView::InitializeSettings()
 			defaultSettings->Define("GazeScaleMin", &GazeMin);
 			defaultSettings->Define("TrackpadScaleMax", &TrackpadMax);
 			defaultSettings->Define("TrackpadScaleMin", &TrackpadMin);
+			defaultSettings->Define("GamepadScaleMax", &GamepadMax);
+			defaultSettings->Define("GamepadScaleMin", &GamepadMin);
 			defaultSettings->Define("VoidScreenDistanceMax", &VoidScreenDistanceMax);
 			defaultSettings->Define("VoidScreenDistanceMin", &VoidScreenDistanceMin);
 			defaultSettings->Define("VoidScreenScaleMax", &VoidScreenScaleMax);
@@ -427,6 +586,23 @@ void MoviePlayerView::InitializeSettings()
 
 			settings2->CopyDefines(*settings1);
 			settings3->CopyDefines(*settings1);
+
+			String settingsText;
+			if(settings1->GetVal("DisplayName", &settingsText) == false)
+			{
+				settingsText.AssignString("Load 1", 7);
+				settings1->SetVal("DisplayName", settingsText);
+			}
+			if(settings2->GetVal("DisplayName", &settingsText) == false)
+			{
+				settingsText.AssignString("Load 2", 7);
+				settings2->SetVal("DisplayName", settingsText);
+			}
+			if(settings3->GetVal("DisplayName", &settingsText) == false)
+			{
+				settingsText.AssignString("Load 3", 7);
+				settings3->SetVal("DisplayName", settingsText);
+			}
 		}
 
 		if(appSettings != NULL)
@@ -444,6 +620,15 @@ void MoviePlayerView::InitializeSettings()
 		{
 			Cinema.SceneMgr.CurrentMovieWidth /= 2;
 		}
+
+		if( mouseMode == MOUSE_GAMEPAD)
+		{
+			Native::controllerHandledByMoonlight(Cinema.app, false);
+		}
+		else {
+			Native::controllerHandledByMoonlight(Cinema.app, true);
+		}
+
 
 		UpdateMenus();
 	}
@@ -673,47 +858,65 @@ void MoviePlayerView::CreateMenu( OvrGuiSys & guiSys )
 	MouseMenu->SetVisible(false);
 
 	ButtonGaze.AddToMenu( guiSys, PlaybackControlsMenu, MouseMenu );
-	ButtonGaze.SetLocalPosition( PixelPos( MENU_X * -1.8, MENU_Y * 1, 1 ) );
+	ButtonGaze.SetLocalPosition( PixelPos( MENU_X * -2.7, MENU_Y * 1, 1 ) );
 	ButtonGaze.SetText( CinemaStrings::ButtonText_ButtonGaze );
 	TextButtonHelper(ButtonGaze);
 	ButtonGaze.SetOnClick( GazeCallback, this);
 	ButtonGaze.SetIsSelected( GazeActiveCallback, this);
 
 	ButtonTrackpad.AddToMenu( guiSys, PlaybackControlsMenu, MouseMenu );
-	ButtonTrackpad.SetLocalPosition( PixelPos( MENU_X * 0, MENU_Y * 1, 1 ) );
+	ButtonTrackpad.SetLocalPosition( PixelPos( MENU_X * -0.9, MENU_Y * 1, 1 ) );
 	ButtonTrackpad.SetText( CinemaStrings::ButtonText_ButtonTrackpad );
 	TextButtonHelper(ButtonTrackpad);
 	ButtonTrackpad.SetOnClick( TrackpadCallback, this);
 	ButtonTrackpad.SetIsSelected( TrackpadActiveCallback, this);
 
+	ButtonGamepad.AddToMenu( guiSys, PlaybackControlsMenu, MouseMenu );
+	ButtonGamepad.SetLocalPosition( PixelPos( MENU_X * 0.9, MENU_Y * 1, 1 ) );
+	ButtonGamepad.SetText( CinemaStrings::ButtonText_ButtonGamepad );
+	TextButtonHelper(ButtonGamepad);
+	ButtonGamepad.SetOnClick( GamepadCallback, this);
+	ButtonGamepad.SetIsSelected( GamepadActiveCallback, this);
+
 	ButtonOff.AddToMenu( guiSys, PlaybackControlsMenu, MouseMenu );
-	ButtonOff.SetLocalPosition( PixelPos( MENU_X * 1.8, MENU_Y * 1, 1 ) );
+	ButtonOff.SetLocalPosition( PixelPos( MENU_X * 2.7, MENU_Y * 1, 1 ) );
 	ButtonOff.SetText( CinemaStrings::ButtonText_ButtonOff );
 	TextButtonHelper(ButtonOff);
 	ButtonOff.SetOnClick( OffCallback, this);
 	ButtonOff.SetIsSelected( OffActiveCallback, this);
 
 	GazeScale.AddToMenu( guiSys, PlaybackControlsMenu, MouseMenu );
-	GazeScale.SetLocalPosition( PixelPos( MENU_X * -1, MENU_Y * 2, 1 ) );
+	GazeScale.SetLocalPosition( PixelPos( MENU_X * -2, MENU_Y * 2, 1 ) );
 	GazeScale.SetText( CinemaStrings::ButtonText_LabelGazeScale );
 	GazeScale.SetLocalScale( Vector3f( 1.0f ) );
 	GazeScale.SetFontScale( 1.0f );
 	GazeScale.SetColor( Vector4f( 0.0f, 0.0f, 0.0f, 1.0f ) );
 	GazeScale.SetTextColor( Vector4f( 1.0f, 1.0f, 1.0f, 1.0f ) );
 	GazeScale.SetImage( 0, SURFACE_TEXTURE_DIFFUSE, BackgroundTintTexture, 300, 80 );
-	SetUpSlider(guiSys, MouseMenu, GazeSlider, GazeSliderBackground, GazeSliderIndicator, GazeCurrentSetting, GazeNewSetting, 300, MENU_X * -1, MENU_Y * 3);
+	SetUpSlider(guiSys, MouseMenu, GazeSlider, GazeSliderBackground, GazeSliderIndicator, GazeCurrentSetting, GazeNewSetting, 300, MENU_X * -2, MENU_Y * 3);
 	GazeSlider.SetOnClick( GazeScaleCallback, this );
 
 	TrackpadScale.AddToMenu( guiSys, PlaybackControlsMenu, MouseMenu );
-	TrackpadScale.SetLocalPosition( PixelPos( MENU_X * 1, MENU_Y * 2, 1 ) );
+	TrackpadScale.SetLocalPosition( PixelPos( MENU_X * 0, MENU_Y * 2, 1 ) );
 	TrackpadScale.SetText( CinemaStrings::ButtonText_LabelTrackpadScale );
 	TrackpadScale.SetLocalScale( Vector3f( 1.0f ) );
 	TrackpadScale.SetFontScale( 1.0f );
 	TrackpadScale.SetColor( Vector4f( 0.0f, 0.0f, 0.0f, 1.0f ) );
 	TrackpadScale.SetTextColor( Vector4f( 1.0f, 1.0f, 1.0f, 1.0f ) );
 	TrackpadScale.SetImage( 0, SURFACE_TEXTURE_DIFFUSE, BackgroundTintTexture, 300, 80 );
-	SetUpSlider(guiSys, MouseMenu, TrackpadSlider, TrackpadSliderBackground, TrackpadSliderIndicator, TrackpadCurrentSetting, TrackpadNewSetting, 300,  MENU_X * 1, MENU_Y * 3);
+	SetUpSlider(guiSys, MouseMenu, TrackpadSlider, TrackpadSliderBackground, TrackpadSliderIndicator, TrackpadCurrentSetting, TrackpadNewSetting, 300,  MENU_X * 0, MENU_Y * 3);
 	TrackpadSlider.SetOnClick( TrackpadScaleCallback, this );
+
+	GamepadScale.AddToMenu( guiSys, PlaybackControlsMenu, MouseMenu );
+	GamepadScale.SetLocalPosition( PixelPos( MENU_X * 2, MENU_Y * 2, 1 ) );
+	GamepadScale.SetText( CinemaStrings::ButtonText_LabelGamepadScale );
+	GamepadScale.SetLocalScale( Vector3f( 1.0f ) );
+	GamepadScale.SetFontScale( 1.0f );
+	GamepadScale.SetColor( Vector4f( 0.0f, 0.0f, 0.0f, 1.0f ) );
+	GamepadScale.SetTextColor( Vector4f( 1.0f, 1.0f, 1.0f, 1.0f ) );
+	GamepadScale.SetImage( 0, SURFACE_TEXTURE_DIFFUSE, BackgroundTintTexture, 300, 80 );
+	SetUpSlider(guiSys, MouseMenu, GamepadSlider, GamepadSliderBackground, GamepadSliderIndicator, GamepadCurrentSetting, GamepadNewSetting, 300,  MENU_X * 2, MENU_Y * 3);
+	GamepadSlider.SetOnClick( GamepadScaleCallback, this );
 
 	StreamMenu = new UIContainer( Cinema );
 	StreamMenu->AddToMenu( guiSys, PlaybackControlsMenu, &PlaybackControlsScale );
@@ -890,7 +1093,62 @@ void MoviePlayerView::OnOpen()
 	RepositionScreen = false;
 	MoveScreenAlpha.Set( 0, 0, 0, 0.0f );
 
+	InitializeGamepadMouse();
 	InitializeSettings();
+
+	String settingsText;
+	settings1->GetVal("DisplayName", &settingsText);
+	if(settingsText.GetLength() > 0)
+	{
+		settingsText = settingsText.Substring(0,16);
+		for(UPInt i = 0; i< settingsText.GetLength(); i++)
+		{
+			if(!isalnum(settingsText[i]) && !isspace(settingsText[i]))
+			{
+				settingsText.Remove(i,1);
+			}
+		}
+		if(settingsText.GetLength() > 0)
+		{
+			ButtonLoadSettings1.SetText( settingsText );
+		}
+	}
+
+	settingsText.Clear();
+	settings2->GetVal("DisplayName", &settingsText);
+	if(settingsText.GetLength() > 0)
+	{
+		settingsText = settingsText.Substring(0,16);
+		for(UPInt i = 0; i< settingsText.GetLength(); i++)
+		{
+			if(!isalnum(settingsText[i]) && !isspace(settingsText[i]))
+			{
+				settingsText.Remove(i,1);
+			}
+		}
+		if(settingsText.GetLength() > 0)
+		{
+			ButtonLoadSettings2.SetText( settingsText );
+		}
+	}
+
+	settingsText.Clear();
+	settings3->GetVal("DisplayName", &settingsText);
+	if(settingsText.GetLength() > 0)
+	{
+		settingsText = settingsText.Substring(0,16);
+		for(UPInt i = 0; i< settingsText.GetLength(); i++)
+		{
+			if(!isalnum(settingsText[i]) && !isspace(settingsText[i]))
+			{
+				settingsText.Remove(i,1);
+			}
+		}
+		if(settingsText.GetLength() > 0)
+		{
+			ButtonLoadSettings3.SetText( settingsText );
+		}
+	}
 
 	HideUI();
 	Cinema.SceneMgr.LightsOff( 1.5f );
@@ -974,8 +1232,9 @@ void MoviePlayerView::BackPressed()
 {
 	LOG( "BackPressed" );
 
-	if( screenMotionPaused )
+	if( Cinema.SceneMgr.SceneInfo.UseVRScreen && screenMotionPaused )
 	{
+		LOG( "Freeing screen!" );
 		screenMotionPaused = false;
 		return;
 	}
@@ -992,20 +1251,12 @@ void MoviePlayerView::BackPressed()
 
 void MoviePlayerView::BackPressedDouble()
 {
-	LOG( "BackPressed" );
+	LOG( "BackPressedDouble" );
 
-	HideUI();
-
-	if ( Cinema.SceneMgr.SceneInfo.UseVRScreen )
+	if ( Cinema.SceneMgr.SceneInfo.UseVRScreen && !uiActive )
 	{
-		if ( calibrationStage > 0 )
-		{
-			calibrationStage = -1;
-		}
-		else
-		{
-			uiActive = !uiActive;
-		}
+		ShowUI();
+		screenMotionPaused = true;
 	}
 	else if ( Cinema.AllowTheaterSelection() )
 	{
@@ -1302,42 +1553,44 @@ void MoviePlayerView::CheckVRInput( const VrFrame & vrFrame )
 		HandleCalibration( vrFrame );
 	}
 
-	if(uiActive)
+	if(!uiActive)
 	{
-	}
-	else if( screenMotionPaused )
-	{
-		const Vector2f screenCursor = GazeCoordinatesOnScreen( Cinema.SceneMgr.Scene.CenterViewMatrix(), Cinema.SceneMgr.ScreenMatrix() );
-		bool onscreen = false;
-		if ( InsideUnit( screenCursor ) )
+		if( screenMotionPaused )
 		{
-			onscreen = true;
+			const Vector2f screenCursor = GazeCoordinatesOnScreen( Cinema.SceneMgr.Scene.CenterViewMatrix(), Cinema.SceneMgr.ScreenMatrix() );
+			bool onscreen = false;
+			if ( InsideUnit( screenCursor ) )
+			{
+				onscreen = true;
+			}
+
+			if( mouseMode == MOUSE_GAZE)
+			{
+				HandleGazeMouse(vrFrame, onscreen, screenCursor);
+			}
+			else if( mouseMode == MOUSE_TRACKPAD)
+			{
+				HandleTrackpadMouse(vrFrame);
+			}
 		}
-		else if ( uiActive )
+		else
 		{
-			onscreen = GazeTimer.IsFocused();
+			if(mouse.x != 0.0 && mouse.y != 0.0)
+			{
+				Native::MouseMove(Cinema.app, mouse.x, mouse.y );
+			}
+
+			// Touching the trackpad will freeze the screen and activate mouse controls until back is hit.
+			if ( vrFrame.Input.buttonReleased & BUTTON_TOUCH )
+			{
+				screenMotionPaused = true;
+			}
 		}
 
-		if( mouseMode == MOUSE_GAZE)
+		// We want to deal with gamepad buttons in mouse gamepad mode
+		if( mouseMode == MOUSE_GAMEPAD)
 		{
-			HandleGazeMouse(vrFrame, onscreen, screenCursor);
-		}
-		else if( mouseMode == MOUSE_TRACKPAD)
-		{
-			HandleTrackpadMouse(vrFrame);
-		}
-	}
-	else
-	{
-		if(mouse.x != 0.0 && mouse.y != 0.0)
-		{
-			Native::MouseMove(Cinema.app, mouse.x, mouse.y );
-		}
-
-		// Touching the trackpad will freeze the screen and activate mouse controls until back is hit.
-		if ( vrFrame.Input.buttonReleased & BUTTON_TOUCH )
-		{
-			screenMotionPaused = true;
+			HandleGamepadMouse(vrFrame);
 		}
 	}
 }
@@ -1508,6 +1761,120 @@ void MoviePlayerView::HandleTrackpadMouse( const VrFrame & vrFrame )
 	}
 }
 
+void MoviePlayerView::DoGamepadEvent(int code, bool down)
+{
+	if(code > 0 && code < 1024)
+	{
+		Native::sendKeyboard( Cinema.app, code, down);
+	}
+	else
+	{
+		if(code >= GPMOUSE_B1 && code <= GPMOUSE_B1 + GPMOUSE_NUM_BUTTONS) {
+			Native::MouseClick(Cinema.app, code - GPMOUSE_B1 + 1, down);
+		}
+		else if(code == GPMOUSE_SCROLL_UP)
+		{
+			if(down)
+			{
+				Native::MouseScroll(Cinema.app, 8);
+			}
+		}
+		else if(code == GPMOUSE_SCROLL_DOWN)
+		{
+			if(down)
+			{
+				Native::MouseScroll(Cinema.app, -8);
+			}
+		}
+		else if(code == GPMOUSE_COMFORT_LEFT)
+		{
+			if(down)
+			{
+				Native::MouseMove(Cinema.app, -160, 0);
+			}
+		}
+		else if(code == GPMOUSE_COMFORT_RIGHT)
+		{
+			if(down)
+			{
+				Native::MouseMove(Cinema.app, 160, 0);
+			}
+		}
+		else if(code == GPMOUSE_TOGGLE_VR_SCREEN_LOCK)
+		{
+			if(down && Cinema.SceneMgr.SceneInfo.UseVRScreen )
+			{
+				screenMotionPaused = !screenMotionPaused;
+			}
+		}
+	}
+}
+
+#define BUTTON_INDEX_LSTICK_UP		16
+#define BUTTON_INDEX_LSTICK_LEFT	18
+#define BUTTON_INDEX_RSTICK_UP		20
+#define BUTTON_INDEX_RSTICK_LEFT	22
+void MoviePlayerView::HandleGamepadMouse( const VrFrame & vrFrame )
+{
+	float mouseX = 0.0;
+	float mouseY = 0.0;
+
+	mouseX = ( ( gamepadButtonSettings[BUTTON_INDEX_LSTICK_UP] == GPMOUSE_AXIS_X_STD) ? vrFrame.Input.sticks[0][0] : 0 )
+		 + ( ( gamepadButtonSettings[BUTTON_INDEX_LSTICK_LEFT] == GPMOUSE_AXIS_X_STD) ? vrFrame.Input.sticks[0][1] : 0 )
+		 + ( ( gamepadButtonSettings[BUTTON_INDEX_RSTICK_UP]   == GPMOUSE_AXIS_X_STD) ? vrFrame.Input.sticks[1][0] : 0 )
+		 + ( ( gamepadButtonSettings[BUTTON_INDEX_RSTICK_LEFT] == GPMOUSE_AXIS_X_STD) ? vrFrame.Input.sticks[1][1] : 0 )
+		 - ( ( gamepadButtonSettings[BUTTON_INDEX_LSTICK_UP]   == GPMOUSE_AXIS_X_INV) ? vrFrame.Input.sticks[0][0] : 0 )
+		 - ( ( gamepadButtonSettings[BUTTON_INDEX_LSTICK_LEFT] == GPMOUSE_AXIS_X_INV) ? vrFrame.Input.sticks[0][1] : 0 )
+		 - ( ( gamepadButtonSettings[BUTTON_INDEX_RSTICK_UP]   == GPMOUSE_AXIS_X_INV) ? vrFrame.Input.sticks[1][0] : 0 )
+		 - ( ( gamepadButtonSettings[BUTTON_INDEX_RSTICK_LEFT] == GPMOUSE_AXIS_X_INV) ? vrFrame.Input.sticks[1][1] : 0 );
+	mouseY = ( ( gamepadButtonSettings[BUTTON_INDEX_LSTICK_UP] == GPMOUSE_AXIS_Y_STD) ? vrFrame.Input.sticks[0][0] : 0 )
+		 + ( ( gamepadButtonSettings[BUTTON_INDEX_LSTICK_LEFT] == GPMOUSE_AXIS_Y_STD) ? vrFrame.Input.sticks[0][1] : 0 )
+		 + ( ( gamepadButtonSettings[BUTTON_INDEX_RSTICK_UP]   == GPMOUSE_AXIS_Y_STD) ? vrFrame.Input.sticks[1][0] : 0 )
+		 + ( ( gamepadButtonSettings[BUTTON_INDEX_RSTICK_LEFT] == GPMOUSE_AXIS_Y_STD) ? vrFrame.Input.sticks[1][1] : 0 )
+		 - ( ( gamepadButtonSettings[BUTTON_INDEX_LSTICK_UP]   == GPMOUSE_AXIS_Y_INV) ? vrFrame.Input.sticks[0][0] : 0 )
+		 - ( ( gamepadButtonSettings[BUTTON_INDEX_LSTICK_LEFT] == GPMOUSE_AXIS_Y_INV) ? vrFrame.Input.sticks[0][1] : 0 )
+		 - ( ( gamepadButtonSettings[BUTTON_INDEX_RSTICK_UP]   == GPMOUSE_AXIS_Y_INV) ? vrFrame.Input.sticks[1][0] : 0 )
+		 - ( ( gamepadButtonSettings[BUTTON_INDEX_RSTICK_LEFT] == GPMOUSE_AXIS_Y_INV) ? vrFrame.Input.sticks[1][1] : 0 );
+
+	if(mouseX != 0 || mouseY != 0)
+	{
+		Native::MouseMove(Cinema.app, mouseX * gamepadScaleValue, mouseY * gamepadScaleValue);
+	}
+
+	static bool rightTriggerDown = false;
+	if(vrFrame.Input.sticks[2][1] != 0 && !rightTriggerDown)
+	{
+		rightTriggerDown = true;
+		DoGamepadEvent( gamepadRTriggerSetting, true);
+	}
+	if(vrFrame.Input.sticks[2][1] == 0 && rightTriggerDown)
+	{
+		rightTriggerDown = false;
+		DoGamepadEvent( gamepadRTriggerSetting, false);
+	}
+
+	static bool leftTriggerDown = false;
+	if(vrFrame.Input.sticks[2][0] != 0 && !leftTriggerDown)
+	{
+		leftTriggerDown = true;
+		DoGamepadEvent( gamepadLTriggerSetting, true);
+	}
+	if(vrFrame.Input.sticks[2][0] == 0 && leftTriggerDown)
+	{
+		leftTriggerDown = false;
+		DoGamepadEvent( gamepadLTriggerSetting, false);
+	}
+
+	if((vrFrame.Input.buttonPressed != 0) || (vrFrame.Input.buttonReleased != 0))
+	{
+		for(int i = 0; i < gamepadKeyCodes.GetSizeI(); i++)
+		{
+			if(vrFrame.Input.buttonPressed & ( gamepadKeyCodes[i] ) ) { DoGamepadEvent( gamepadButtonSettings[i], true); }
+			if(vrFrame.Input.buttonReleased & ( gamepadKeyCodes[i] ) ) { DoGamepadEvent( gamepadButtonSettings[i], false); }
+		}
+	}
+}
+
 void MoviePlayerView::CheckInput( const VrFrame & vrFrame )
 {
 	if ( Cinema.SceneMgr.SceneInfo.UseVRScreen )
@@ -1545,6 +1912,10 @@ void MoviePlayerView::CheckInput( const VrFrame & vrFrame )
 		else if( mouseMode == MOUSE_TRACKPAD)
 		{
 			HandleTrackpadMouse(vrFrame);
+		}
+		else if( mouseMode == MOUSE_GAMEPAD)
+		{
+			HandleGamepadMouse(vrFrame);
 		}
 	}
 	else
@@ -1672,6 +2043,7 @@ void MoviePlayerView::ExitButtonPressed()
 void MoviePlayerView::SaveAppPressed()
 {
 	if(!appSettings) return;
+
 	appSettings->SaveChanged();
 	UpdateMenus();
 }
@@ -1680,6 +2052,7 @@ void MoviePlayerView::SaveDefaultPressed()
 	if(!defaultSettings) return;
 //	defaultSettings->SaveChanged();
 //	defaultSettings->SaveVarNames();
+
 	defaultSettings->SaveAll();
 	UpdateMenus();
 }
@@ -1713,6 +2086,7 @@ void MoviePlayerView::ResetDefaultPressed()
 	//FIXME: Define all these defaults in a better place
 	gazeScaleValue = 1.05;
 	trackpadScaleValue = 2.0;
+	gamepadScaleValue = 20.0;
 	streamWidth = 1280;
 	streamHeight = 720;
 	streamFPS = 60;
@@ -1747,18 +2121,21 @@ void MoviePlayerView::ResetDefaultPressed()
 void MoviePlayerView::Save1Pressed()
 {
 	if(!settings1) return;
+
 	settings1->SaveAll();
 	UpdateMenus();
 }
 void MoviePlayerView::Save2Pressed()
 {
 	if(!settings2) return;
+
 	settings2->SaveAll();
 	UpdateMenus();
 }
 void MoviePlayerView::Save3Pressed()
 {
 	if(!settings3) return;
+
 	settings3->SaveAll();
 	UpdateMenus();
 }
@@ -1793,6 +2170,8 @@ void MoviePlayerView::LoadSettings(Settings* set)
 	GazeSlider.SetValue(gazeScaleValue);
 	TrackpadSlider.SetExtents(TrackpadMax,TrackpadMin,2);
 	TrackpadSlider.SetValue(trackpadScaleValue);
+	GamepadSlider.SetExtents(GamepadMax,GamepadMin,2);
+	GamepadSlider.SetValue(gamepadScaleValue);
 	DistanceSlider.SetExtents(VoidScreenDistanceMax,VoidScreenDistanceMin,2);
 	DistanceSlider.SetValue(Cinema.SceneMgr.FreeScreenDistance);
 	SizeSlider.SetExtents(VoidScreenScaleMax,VoidScreenScaleMin,2);
@@ -1808,22 +2187,41 @@ void MoviePlayerView::LoadSettings(Settings* set)
 		Cinema.SceneMgr.CurrentMovieWidth *= 2;
 	}
 
+	if( mouseMode == MOUSE_GAMEPAD)
+	{
+		Native::controllerHandledByMoonlight(Cinema.app, false);
+	}
+	else {
+		Native::controllerHandledByMoonlight(Cinema.app, true);
+	}
+
+	LoadGamepadSettings(set);
+
 	UpdateMenus();
 }
 
 // Mouse controls
 void MoviePlayerView::GazePressed()
 {
+	Native::controllerHandledByMoonlight(Cinema.app, true);
 	mouseMode = MOUSE_GAZE;
 	UpdateMenus();
 }
 void MoviePlayerView::TrackpadPressed()
 {
+	Native::controllerHandledByMoonlight(Cinema.app, true);
 	mouseMode = MOUSE_TRACKPAD;
+	UpdateMenus();
+}
+void MoviePlayerView::GamepadPressed()
+{
+	Native::controllerHandledByMoonlight(Cinema.app, false);
+	mouseMode = MOUSE_GAMEPAD;
 	UpdateMenus();
 }
 void MoviePlayerView::OffPressed()
 {
+	Native::controllerHandledByMoonlight(Cinema.app, true);
 	mouseMode = MOUSE_OFF;
 	UpdateMenus();
 }
@@ -1834,6 +2232,10 @@ bool MoviePlayerView::GazeActive()
 bool MoviePlayerView::TrackpadActive()
 {
 	return mouseMode == MOUSE_TRACKPAD;
+}
+bool MoviePlayerView::GamepadActive()
+{
+	return mouseMode == MOUSE_GAMEPAD;
 }
 bool MoviePlayerView::OffActive()
 {
@@ -1849,6 +2251,11 @@ void MoviePlayerView::TrackpadScalePressed(const float value)
 {
 	trackpadScaleValue = value;
 	TrackpadSlider.SetValue( value );
+}
+void MoviePlayerView::GamepadScalePressed(const float value)
+{
+	gamepadScaleValue = value;
+	GamepadSlider.SetValue( value );
 }
 
 // Stream controls
@@ -2026,6 +2433,7 @@ void MoviePlayerView::UpdateMenus()
 {
 	ButtonGaze.UpdateButtonState();
 	ButtonTrackpad.UpdateButtonState();
+	ButtonGamepad.UpdateButtonState();
 	ButtonOff.UpdateButtonState();
 
 	Button1080.UpdateButtonState();
@@ -2055,6 +2463,8 @@ void MoviePlayerView::UpdateMenus()
 	GazeSlider.SetValue(gazeScaleValue);
 	TrackpadSlider.SetExtents(TrackpadMax,TrackpadMin,2);
 	TrackpadSlider.SetValue(trackpadScaleValue);
+	GamepadSlider.SetExtents(GamepadMax,GamepadMin,2);
+	GamepadSlider.SetValue(gamepadScaleValue);
 	DistanceSlider.SetExtents(VoidScreenDistanceMax,VoidScreenDistanceMin,2);
 	DistanceSlider.SetValue(Cinema.SceneMgr.FreeScreenDistance);
 	SizeSlider.SetExtents(VoidScreenScaleMax,VoidScreenScaleMin,2);

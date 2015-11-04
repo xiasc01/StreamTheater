@@ -139,6 +139,8 @@ static jmethodID	startAppUpdatesMethodId = NULL;
 static jmethodID	getLastFrameTimestampMethodId = NULL;
 static jmethodID	currentTimeMillisMethodId = NULL;
 static jmethodID	closeAppMethodId = NULL;
+static jmethodID	controllerHandledByMoonlightMethodId = NULL;
+static jmethodID	sendKeyboardMethodId = NULL;
 
 // Error checks and exits on failure
 static jmethodID GetMethodID( App *app, jclass cls, const char * name, const char * signature )
@@ -182,6 +184,8 @@ void Native::OneTimeInit( App *app, jclass mainActivityClass )
 	getLastFrameTimestampMethodId		= GetMethodID( app, mainActivityClass, "getLastFrameTimestamp", "()J" );
 	currentTimeMillisMethodId			= GetMethodID( app, mainActivityClass, "currentTimeMillis", "()J" );
 	closeAppMethodId					= GetMethodID( app, mainActivityClass, "closeApp", "(Ljava/lang/String;I)V" );
+	controllerHandledByMoonlightMethodId = GetMethodID( app, mainActivityClass, "controllerHandledByMoonlight", "(Z)V");
+	sendKeyboardMethodId				= GetMethodID( app, mainActivityClass, "sendKeyboard", "(IZ)V" );
 	LOG( "Native::OneTimeInit: %3.1f seconds", vrapi_GetTimeInSeconds() - start );
 }
 
@@ -346,5 +350,17 @@ int Native::addPCbyIP(App *app, const char* ip)
 	app->GetVrJni()->DeleteLocalRef( jstrIP );
 	return result;
 }
+
+void Native::controllerHandledByMoonlight(App *app, bool handleIt)
+{
+	app->GetVrJni()->CallVoidMethod( app->GetJavaObject(), controllerHandledByMoonlightMethodId, handleIt);
+}
+
+
+void Native::sendKeyboard(App *app, int keycode, bool down)
+{
+	app->GetVrJni()->CallVoidMethod( app->GetJavaObject(), sendKeyboardMethodId, keycode, down );
+}
+
 
 } // namespace VRMatterStreamTheater

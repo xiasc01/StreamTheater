@@ -156,6 +156,7 @@ private:
 
 	UITextButton *						ButtonGaze;
 	UITextButton *						ButtonTrackpad;
+	UITextButton *						ButtonGamepad;
 	UITextButton *						ButtonOff;
 	UITextButton *						Button1080;
 	UITextButton *						Button720;

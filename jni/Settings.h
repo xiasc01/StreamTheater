@@ -48,6 +48,9 @@ public:
 	template<typename T>
 	bool GetVal(const char* varName, T* toSet);
 
+	template<typename T>
+	void SetVal(const char* varName, T value);
+
 	bool IsChanged();
 
 	// Remove a variable from the saved settings file

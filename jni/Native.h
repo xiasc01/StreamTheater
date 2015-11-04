@@ -76,6 +76,9 @@ public:
     static long			currentTimeMillis(App *app);
 
     static int			addPCbyIP(App *app, const char* ip);
+
+    static void			controllerHandledByMoonlight(App *app, bool handleIt);
+    static void			sendKeyboard(App *app, int keycode, bool down);
 };
 
 } // namespace VRMatterStreamTheater

@@ -36,6 +36,15 @@ void PrintFileToLog(const char* filename)
     LOG("END ---------------------");
 }
 
+void PrintJson(JSON* json)
+{
+    LOG("START----------------------");
+	char* out = json->PrintValue(0, true);
+	LOG("%s", out);
+	free(out);
+    LOG("END------------------------");
+}
+
 /*
  * Variable holder
  */
@@ -262,7 +271,18 @@ Settings::~Settings()
 
 void Settings::OpenOrCreate(const char* filename)
 {
+	if(settingsFileName)
+	{
+		free(settingsFileName);
+	}
 	settingsFileName = strdup(filename);
+
+	if(rootSettingsJSON)
+	{
+		rootSettingsJSON->Release();
+		rootSettingsJSON = NULL;
+		settingsJSON = NULL;
+	}
 	if(!(rootSettingsJSON = JSON::Load(filename)))
 	{
 		LOG("Creating new settings file: %s", filename);
@@ -278,7 +298,7 @@ void Settings::OpenOrCreate(const char* filename)
 	else
 	{
 		LOG("Opening existing settings file: %s", filename);
-		PrintFileToLog(filename);
+		//PrintFileToLog(filename);
 	}
 
 	// Any incompatible settings versions should be dealt with here!
@@ -313,7 +333,7 @@ template<typename T> bool Settings::GetVal(const char* varName, T* toSet)
 	{
 		if(strcmp(variables[i]->name, varName) == 0)
 		{
-			Variable<T>* var = dynamic_cast<Variable<T>*>(variables[i]);
+			Variable<T>* var = (Variable<T>*)(variables[i]);
 			if(var == NULL)
 			{
 				return false;
@@ -328,11 +348,36 @@ template<typename T> bool Settings::GetVal(const char* varName, T* toSet)
 	if(valJSON)
 	{
 		JSONToTypeHelper<T>(valJSON, toSet);
-		valJSON->Release();
 		return true;
 	}
 	return false;
 }
+
+template<typename T> void Settings::SetVal(const char* varName, T value)
+{
+	if(settingsJSON == NULL) return;
+	JSON* newJSON = JSON::CreateNumber(value);
+	newJSON->Name = strdup(varName);
+	settingsJSON->AddItem(varName,newJSON);
+	PrintJson(settingsJSON);
+}
+
+template<> void Settings::SetVal(const char* varName, char* value)
+{
+	if(settingsJSON == NULL) return;
+	JSON* newJSON = JSON::CreateString(strdup(value));
+	newJSON->Name = strdup(varName);
+	settingsJSON->AddItem(varName,newJSON);
+}
+
+template<> void Settings::SetVal(const char* varName, String value)
+{
+	if(settingsJSON == NULL) return;
+	JSON* newJSON = JSON::CreateString(strdup(value.ToCStr()));
+	newJSON->Name = strdup(varName);
+	settingsJSON->AddItem(varName,newJSON);
+}
+
 
 bool Settings::IsChanged()
 {
@@ -435,6 +480,7 @@ void Settings::SaveAll()
 void Settings::SaveChanged()
 {
 	if(settingsJSON == NULL) return;
+
 	for(int i = 0; i < variables.GetSizeI(); i++)
 	{
 		IVariable* var = variables[i];
@@ -524,7 +570,6 @@ void	Settings::SaveVarNames()
 	rootSettingsJSON->Save(settingsFileName);
 }
 
-#ifndef NDEBUG
 #include <assert.h>
 void SettingsTest(String packageName)
 {
@@ -606,9 +651,48 @@ void SettingsTest(String packageName)
 	assert( f == 6.0f ); // shouldn't have been saved
 	assert( d == 3.0 ); // should stay same
 	assert( strcmp(cstr,"changed cstr") == 0 ); // C-Strings revert ok?
-	LOG("Test %s",str.ToCStr());
 	assert( str == "changed String" ); // Saved on its own?
+
+
+	LOG("Setting values, not variabls");
+	s->SetVal<bool>("testbool2", true);
+	s->SetVal<int>("testint2", 9);
+	s->SetVal<float>("testfloat2", 10.1);
+	s->SetVal<double>("testdouble2", 12.2);
+	char* tempChar = strdup("NotAVariable!");
+	s->SetVal<char*>("testcstr2", tempChar);
+	free(tempChar);
+	s->SetVal<String>("teststr2", "Nope!");
+
+	s->SaveAll();
+
+	LOG("Closing settings");
+	delete(s);
+
+	LOG("Opening file again");
+	s = new Settings(FilePath);
+
+	bool b2 = false;
+	int i2 = 0;
+	float f2 = 0.0f;
+	double d2 = 0.0;
+	char* cstr2 = strdup("null");
+	String str2("empty");
+
+	LOG("Getting values");
+	s->GetVal<bool>("testbool", &b2);
+	s->GetVal<int>("testint",&i2);
+	s->GetVal<float>("testfloat",&f2);
+	s->GetVal<double>("testdouble",&d2);
+	s->GetVal<char*>("testcstr",&cstr2);
+	s->GetVal<String>("teststr",&str2);
+
+	assert( b == true ); // good?
+	assert( i == 9 ); // should revert
+	assert( f == 10.1f ); // shouldn't have been saved
+	assert( d == 12.2 ); // should stay same
+	assert( strcmp(cstr,"NotAVariable!") == 0 ); // C-Strings revert ok?
+	assert( str == "Nope!" ); // Saved on its own?
 }
-#endif
 
 } // namespace VRMatterStreamTheater
