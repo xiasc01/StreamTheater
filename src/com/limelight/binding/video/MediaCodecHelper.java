@@ -10,6 +10,9 @@ import java.util.Locale;
 
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
+import android.app.ActivityManager;
+import android.content.Context;
+import android.content.pm.ConfigurationInfo;
 import android.media.MediaCodecInfo;
 import android.media.MediaCodecList;
 import android.media.MediaCodecInfo.CodecCapabilities;
@@ -27,6 +30,8 @@ public class MediaCodecHelper {
 	private static final List<String> whitelistedAdaptiveResolutionPrefixes;
     private static final List<String> baselineProfileHackPrefixes;
     private static final List<String> directSubmitPrefixes;
+	private static final List<String> constrainedHighProfilePrefixes;
+	private static final List<String> whitelistedHevcDecoders;
 
     static {
         directSubmitPrefixes = new LinkedList<String>();
@@ -52,14 +57,12 @@ public class MediaCodecHelper {
 		// Software decoders that don't support H264 high profile
 		blacklistedDecoderPrefixes.add("omx.google");
 		blacklistedDecoderPrefixes.add("AVCDecoder");
-
 	}
 	
 	static {
 		spsFixupBitstreamFixupDecoderPrefixes = new LinkedList<String>();
 		spsFixupBitstreamFixupDecoderPrefixes.add("omx.nvidia");
 		spsFixupBitstreamFixupDecoderPrefixes.add("omx.qcom");
-		spsFixupBitstreamFixupDecoderPrefixes.add("omx.mtk");
         spsFixupBitstreamFixupDecoderPrefixes.add("omx.brcm");
 
         baselineProfileHackPrefixes = new LinkedList<String>();
@@ -70,6 +73,37 @@ public class MediaCodecHelper {
 		whitelistedAdaptiveResolutionPrefixes.add("omx.qcom");
 		whitelistedAdaptiveResolutionPrefixes.add("omx.sec");
 		whitelistedAdaptiveResolutionPrefixes.add("omx.TI");
+
+		constrainedHighProfilePrefixes = new LinkedList<String>();
+		constrainedHighProfilePrefixes.add("omx.intel");
+
+		whitelistedHevcDecoders = new LinkedList<>();
+		whitelistedHevcDecoders.add("omx.exynos");
+		whitelistedHevcDecoders.add("omx.nvidia");
+		whitelistedHevcDecoders.add("omx.mtk");
+		whitelistedHevcDecoders.add("omx.amlogic");
+		whitelistedHevcDecoders.add("omx.rk");
+		// omx.qcom added conditionally during initialization
+	}
+
+	public static void initializeWithContext(Context context) {
+		ActivityManager activityManager =
+				(ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+		ConfigurationInfo configInfo = activityManager.getDeviceConfigurationInfo();
+		if (configInfo.reqGlEsVersion != ConfigurationInfo.GL_ES_VERSION_UNDEFINED) {
+			// Qualcomm's early HEVC decoders break hard on our HEVC stream. The best check to
+			// tell the good from the bad decoders are the generation of Adreno GPU included:
+			// 3xx - bad
+			// 4xx - good
+			//
+			// Unfortunately, it's not that easy to get that information here, so I'll use an
+			// approximation by checking the GLES level (<= 3.0 is bad).
+			LimeLog.info("OpenGL ES version: "+configInfo.reqGlEsVersion);
+			if (configInfo.reqGlEsVersion > 0x30000) {
+				LimeLog.info("Added omx.qcom to supported decoders based on GLES 3.1+ support");
+				whitelistedHevcDecoders.add("omx.qcom");
+			}
+		}
 	}
 
 	private static boolean isDecoderInList(List<String> decoderList, String decoderName) {
@@ -84,9 +118,13 @@ public class MediaCodecHelper {
 		
 		return false;
 	}
+
+	public static long getMonotonicMillis() {
+		return System.nanoTime() / 1000000L;
+	}
 	
 	@TargetApi(Build.VERSION_CODES.KITKAT)
-	public static boolean decoderSupportsAdaptivePlayback(String decoderName, MediaCodecInfo decoderInfo) {
+	public static boolean decoderSupportsAdaptivePlayback(String decoderName) {
 		/*
         FIXME: Intel's decoder on Nexus Player forces the high latency path if adaptive playback is enabled
         so we'll keep it off for now, since we don't know whether other devices also do the same
@@ -114,17 +152,42 @@ public class MediaCodecHelper {
 		return false;
 	}
 
-    public static boolean decoderCanDirectSubmit(String decoderName, MediaCodecInfo decoderInfo) {
+	public static boolean decoderNeedsConstrainedHighProfile(String decoderName) {
+		return isDecoderInList(constrainedHighProfilePrefixes, decoderName);
+	}
+
+    public static boolean decoderCanDirectSubmit(String decoderName) {
         return isDecoderInList(directSubmitPrefixes, decoderName) && !isExynos4Device();
     }
 	
-	public static boolean decoderNeedsSpsBitstreamRestrictions(String decoderName, MediaCodecInfo decoderInfo) {
+	public static boolean decoderNeedsSpsBitstreamRestrictions(String decoderName) {
 		return isDecoderInList(spsFixupBitstreamFixupDecoderPrefixes, decoderName);
 	}
 
-    public static boolean decoderNeedsBaselineSpsHack(String decoderName, MediaCodecInfo decoderInfo) {
+    public static boolean decoderNeedsBaselineSpsHack(String decoderName) {
         return isDecoderInList(baselineProfileHackPrefixes, decoderName);
     }
+
+	public static boolean decoderIsWhitelistedForHevc(String decoderName) {
+		// NVIDIA does partial HEVC acceleration on the Shield Tablet. I don't know
+		// whether the performance is good enough to use for streaming, but they're
+		// using the same omx.nvidia.h265.decode name as the Shield TV which has a
+		// fully accelerated HEVC pipeline. AFAIK, the only K1 device with this
+		// partially accelerated HEVC decoder is the Shield Tablet, so I'll
+		// check for it here.
+		if (Build.DEVICE.equalsIgnoreCase("shieldtablet")) {
+			return false;
+		}
+
+		// Google didn't have official support for HEVC (or more importantly, a CTS test) until
+		// Lollipop. I've seen some MediaTek devices on 4.4 crash when attempting to use HEVC,
+		// so I'm restricting HEVC usage to Lollipop and higher.
+		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+			return false;
+		}
+
+		return isDecoderInList(whitelistedHevcDecoders, decoderName);
+	}
 	
 	@SuppressWarnings("deprecation")
 	@SuppressLint("NewApi")
@@ -189,7 +252,7 @@ public class MediaCodecHelper {
 		return null;
 	}
 	
-	public static MediaCodecInfo findFirstDecoder() {
+	public static MediaCodecInfo findFirstDecoder(String mimeType) {
 		for (MediaCodecInfo codecInfo : getMediaCodecList()) {
 			// Skip encoders
 			if (codecInfo.isEncoder()) {
@@ -202,9 +265,9 @@ public class MediaCodecHelper {
 				continue;
 			}
 			
-			// Find a decoder that supports H.264
+			// Find a decoder that supports the specified video format
 			for (String mime : codecInfo.getSupportedTypes()) {
-				if (mime.equalsIgnoreCase("video/avc")) {
+				if (mime.equalsIgnoreCase(mimeType)) {
 					LimeLog.info("First decoder choice is "+codecInfo.getName());
 					return codecInfo;
 				}
@@ -214,7 +277,7 @@ public class MediaCodecHelper {
 		return null;
 	}
 	
-	public static MediaCodecInfo findProbableSafeDecoder() {
+	public static MediaCodecInfo findProbableSafeDecoder(String mimeType, int requiredProfile) {
 		// First look for a preferred decoder by name
 		MediaCodecInfo info = findPreferredDecoder();
 		if (info != null) {
@@ -224,12 +287,12 @@ public class MediaCodecHelper {
 		// Now look for decoders we know are safe
 		try {
 			// If this function completes, it will determine if the decoder is safe
-			return findKnownSafeDecoder();
+			return findKnownSafeDecoder(mimeType, requiredProfile);
 		} catch (Exception e) {
 			// Some buggy devices seem to throw exceptions
 			// from getCapabilitiesForType() so we'll just assume
 			// they're okay and go with the first one we find
-			return findFirstDecoder();
+			return findFirstDecoder(mimeType);
 		}
 	}
 
@@ -237,7 +300,7 @@ public class MediaCodecHelper {
 	// since some bad decoders can throw IllegalArgumentExceptions unexpectedly
 	// and we want to be sure all callers are handling this possibility
 	@SuppressWarnings("RedundantThrows")
-    private static MediaCodecInfo findKnownSafeDecoder() throws Exception {
+    private static MediaCodecInfo findKnownSafeDecoder(String mimeType, int requiredProfile) throws Exception {
 		for (MediaCodecInfo codecInfo : getMediaCodecList()) {		
 			// Skip encoders
 			if (codecInfo.isEncoder()) {
@@ -250,21 +313,26 @@ public class MediaCodecHelper {
 				continue;
 			}
 			
-			// Find a decoder that supports H.264 high profile
+			// Find a decoder that supports the requested video format
 			for (String mime : codecInfo.getSupportedTypes()) {
-				if (mime.equalsIgnoreCase("video/avc")) {
+				if (mime.equalsIgnoreCase(mimeType)) {
 					LimeLog.info("Examining decoder capabilities of "+codecInfo.getName());
-					
+
 					CodecCapabilities caps = codecInfo.getCapabilitiesForType(mime);
-					for (CodecProfileLevel profile : caps.profileLevels) {
-						if (profile.profile == CodecProfileLevel.AVCProfileHigh) {
-							LimeLog.info("Decoder "+codecInfo.getName()+" supports high profile");
-							LimeLog.info("Selected decoder: "+codecInfo.getName());
-							return codecInfo;
+
+					if (requiredProfile != -1) {
+						for (CodecProfileLevel profile : caps.profileLevels) {
+							if (profile.profile == requiredProfile) {
+								LimeLog.info("Decoder " + codecInfo.getName() + " supports required profile");
+								return codecInfo;
+							}
 						}
+
+						LimeLog.info("Decoder " + codecInfo.getName() + " does NOT support required profile");
 					}
-					
-					LimeLog.info("Decoder "+codecInfo.getName()+" does NOT support high profile");
+					else {
+						return codecInfo;
+					}
 				}
 			}
 		}

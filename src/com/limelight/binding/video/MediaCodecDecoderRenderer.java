@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 import java.util.Locale;
 import java.util.concurrent.locks.LockSupport;
 
+import org.jcodec.codecs.h264.H264Utils;
 import org.jcodec.codecs.h264.io.model.SeqParameterSet;
 import org.jcodec.codecs.h264.io.model.VUIParameters;
 
@@ -12,8 +13,9 @@ import com.limelight.nvstream.av.ByteBufferDescriptor;
 import com.limelight.nvstream.av.DecodeUnit;
 import com.limelight.nvstream.av.video.VideoDecoderRenderer;
 import com.limelight.nvstream.av.video.VideoDepacketizer;
+import com.limelight.preferences.PreferenceConfiguration;
 
-import android.annotation.TargetApi;
+import android.annotation.SuppressLint;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
@@ -22,16 +24,22 @@ import android.media.MediaCodec.CodecException;
 import android.os.Build;
 import android.view.SurfaceHolder;
 
-@SuppressWarnings("unused")
-public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
+@SuppressLint("NewApi") public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
 
-    private ByteBuffer[] videoDecoderInputBuffers;
+    // Used on versions < 5.0
+    private ByteBuffer[] legacyInputBuffers;
+
+    private String avcDecoderName;
+    private String hevcDecoderName;
+
     private MediaCodec videoDecoder;
     private Thread rendererThread;
-    private final boolean needsSpsBitstreamFixup, isExynos4;
+    private boolean needsSpsBitstreamFixup, isExynos4;
     private VideoDepacketizer depacketizer;
-    private final boolean adaptivePlayback, directSubmit;
+    private boolean adaptivePlayback, directSubmit;
+    private boolean constrainedHighProfile;
     private int initialWidth, initialHeight;
+    private VideoFormat videoFormat;
 
     private boolean needsBaselineSpsHack;
     private SeqParameterSet savedSps;
@@ -41,69 +49,148 @@ public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
     private long decoderTimeMs;
     private int totalFrames;
 
-    private String decoderName;
     private int numSpsIn;
     private int numPpsIn;
+    private int numVpsIn;
     private int numIframeIn;
     
     private long presentationTimeUs;
 
-    @TargetApi(Build.VERSION_CODES.KITKAT)
-    public MediaCodecDecoderRenderer() {
+    private MediaCodecInfo findAvcDecoder() {
+        MediaCodecInfo decoder = MediaCodecHelper.findProbableSafeDecoder("video/avc", MediaCodecInfo.CodecProfileLevel.AVCProfileHigh);
+        if (decoder == null) {
+            decoder = MediaCodecHelper.findFirstDecoder("video/avc");
+        }
+        return decoder;
+    }
+
+    private MediaCodecInfo findHevcDecoder(int videoFormat) {
+        // Don't return anything if H.265 is forced off
+        if (videoFormat == PreferenceConfiguration.FORCE_H265_OFF) {
+            return null;
+        }
+
+        // We don't try the first HEVC decoder. We'd rather fall back to hardware accelerated AVC instead
+        //
+        // We need HEVC Main profile, so we could pass that constant to findProbableSafeDecoder, however
+        // some decoders (at least Qualcomm's Snapdragon 805) don't properly report support
+        // for even required levels of HEVC.
+        MediaCodecInfo decoderInfo = MediaCodecHelper.findProbableSafeDecoder("video/hevc", -1);
+        if (decoderInfo != null) {
+            if (!MediaCodecHelper.decoderIsWhitelistedForHevc(decoderInfo.getName())) {
+                LimeLog.info("Found HEVC decoder, but it's not whitelisted - "+decoderInfo.getName());
+
+                if (videoFormat == PreferenceConfiguration.FORCE_H265_ON) {
+                    LimeLog.info("Forcing H265 enabled despite non-whitelisted decoder");
+                }
+                else {
+                    return null;
+                }
+            }
+        }
+
+        return decoderInfo;
+    }
+
+    public MediaCodecDecoderRenderer(int videoFormat) {
         //dumpDecoders();
 
-        MediaCodecInfo decoder = MediaCodecHelper.findProbableSafeDecoder();
-        if (decoder == null) {
-            decoder = MediaCodecHelper.findFirstDecoder();
+        MediaCodecInfo avcDecoder = findAvcDecoder();
+        if (avcDecoder != null) {
+            avcDecoderName = avcDecoder.getName();
+            LimeLog.info("Selected AVC decoder: "+avcDecoderName);
         }
-        if (decoder == null) {
-            // This case is handled later in setup()
-            needsSpsBitstreamFixup = isExynos4 =
-            adaptivePlayback = directSubmit = false;
-            return;
+        else {
+            LimeLog.warning("No AVC decoder found");
         }
 
-        decoderName = decoder.getName();
-
-        // Set decoder-specific attributes
-        directSubmit = MediaCodecHelper.decoderCanDirectSubmit(decoderName, decoder);
-        adaptivePlayback = MediaCodecHelper.decoderSupportsAdaptivePlayback(decoderName, decoder);
-        needsSpsBitstreamFixup = MediaCodecHelper.decoderNeedsSpsBitstreamRestrictions(decoderName, decoder);
-        needsBaselineSpsHack = MediaCodecHelper.decoderNeedsBaselineSpsHack(decoderName, decoder);
-        isExynos4 = MediaCodecHelper.isExynos4Device();
-        if (needsSpsBitstreamFixup) {
-            LimeLog.info("Decoder "+decoderName+" needs SPS bitstream restrictions fixup");
+        MediaCodecInfo hevcDecoder = findHevcDecoder(videoFormat);
+        if (hevcDecoder != null) {
+            hevcDecoderName = hevcDecoder.getName();
+            LimeLog.info("Selected HEVC decoder: "+hevcDecoderName);
         }
-        if (needsBaselineSpsHack) {
-            LimeLog.info("Decoder "+decoderName+" needs baseline SPS hack");
-        }
-        if (isExynos4) {
-            LimeLog.info("Decoder "+decoderName+" is on Exynos 4");
-        }
-        if (directSubmit) {
-            LimeLog.info("Decoder "+decoderName+" will use direct submit");
+        else {
+            LimeLog.info("No HEVC decoder found");
         }
     }
 
     @Override
-    public boolean setup(int width, int height, int redrawRate, Object renderTarget, int drFlags) {
+    public boolean isHevcSupported() {
+        return hevcDecoderName != null;
+    }
+
+    @Override
+    public boolean isAvcSupported() {
+        return avcDecoderName != null;
+    }
+
+    @Override
+    public boolean setup(VideoDecoderRenderer.VideoFormat format, int width, int height, int redrawRate, Object renderTarget, int drFlags) {
         this.initialWidth = width;
         this.initialHeight = height;
+        this.videoFormat = format;
 
-        if (decoderName == null) {
-            LimeLog.severe("No available hardware decoder!");
+        String mimeType;
+        String selectedDecoderName;
+
+        if (videoFormat == VideoFormat.H264) {
+            mimeType = "video/avc";
+            selectedDecoderName = avcDecoderName;
+
+            if (avcDecoderName == null) {
+                LimeLog.severe("No available AVC decoder!");
+                return false;
+            }
+
+            // These fixups only apply to H264 decoders
+            needsSpsBitstreamFixup = MediaCodecHelper.decoderNeedsSpsBitstreamRestrictions(selectedDecoderName);
+            needsBaselineSpsHack = MediaCodecHelper.decoderNeedsBaselineSpsHack(selectedDecoderName);
+            constrainedHighProfile = MediaCodecHelper.decoderNeedsConstrainedHighProfile(selectedDecoderName);
+            isExynos4 = MediaCodecHelper.isExynos4Device();
+            if (needsSpsBitstreamFixup) {
+                LimeLog.info("Decoder "+selectedDecoderName+" needs SPS bitstream restrictions fixup");
+            }
+            if (needsBaselineSpsHack) {
+                LimeLog.info("Decoder "+selectedDecoderName+" needs baseline SPS hack");
+            }
+            if (constrainedHighProfile) {
+                LimeLog.info("Decoder "+selectedDecoderName+" needs constrained high profile");
+            }
+            if (isExynos4) {
+                LimeLog.info("Decoder "+selectedDecoderName+" is on Exynos 4");
+            }
+        }
+        else if (videoFormat == VideoFormat.H265) {
+            mimeType = "video/hevc";
+            selectedDecoderName = hevcDecoderName;
+
+            if (hevcDecoderName == null) {
+                LimeLog.severe("No available HEVC decoder!");
+                return false;
+            }
+        }
+        else {
+            // Unknown format
             return false;
+        }
+
+        // Set decoder-specific attributes
+        directSubmit = MediaCodecHelper.decoderCanDirectSubmit(selectedDecoderName);
+        adaptivePlayback = MediaCodecHelper.decoderSupportsAdaptivePlayback(selectedDecoderName);
+
+        if (directSubmit) {
+            LimeLog.info("Decoder "+selectedDecoderName+" will use direct submit");
         }
 
         // Codecs have been known to throw all sorts of crazy runtime exceptions
         // due to implementation problems
         try {
-            videoDecoder = MediaCodec.createByCodecName(decoderName);
+            videoDecoder = MediaCodec.createByCodecName(selectedDecoderName);
         } catch (Exception e) {
             return false;
         }
 
-        MediaFormat videoFormat = MediaFormat.createVideoFormat("video/avc", width, height);
+        MediaFormat videoFormat = MediaFormat.createVideoFormat(mimeType, width, height);
 
         // Adaptive playback can also be enabled by the whitelist on pre-KitKat devices
         // so we don't fill these pre-KitKat
@@ -115,12 +202,11 @@ public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
         videoDecoder.configure(videoFormat, ((SurfaceHolder)renderTarget).getSurface(), null, 0);
         videoDecoder.setVideoScalingMode(MediaCodec.VIDEO_SCALING_MODE_SCALE_TO_FIT);
 
-        LimeLog.info("Using hardware decoding");
+        LimeLog.info("Using codec "+selectedDecoderName+" for hardware decoding "+mimeType);
 
         return true;
     }
 
-    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     private void handleDecoderException(Exception e, ByteBuffer buf, int codecFlags) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             if (e instanceof CodecException) {
@@ -150,7 +236,6 @@ public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
     private void startDirectSubmitRendererThread()
     {
         rendererThread = new Thread() {
-            @SuppressWarnings("deprecation")
             @Override
             public void run() {
                 BufferInfo info = new BufferInfo();
@@ -174,7 +259,7 @@ public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
                             videoDecoder.releaseOutputBuffer(lastIndex, true);
 
                             // Add delta time to the totals (excluding probable outliers)
-                            long delta = System.currentTimeMillis() - (presentationTimeUs / 1000);
+                            long delta = MediaCodecHelper.getMonotonicMillis() - (presentationTimeUs / 1000);
                             if (delta >= 0 && delta < 1000) {
                                 decoderTimeMs += delta;
                                 totalTimeMs += delta;
@@ -182,9 +267,6 @@ public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
                         } else {
                             switch (outIndex) {
                                 case MediaCodec.INFO_TRY_AGAIN_LATER:
-                                    break;
-                                case MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED:
-                                    LimeLog.info("Output buffers changed");
                                     break;
                                 case MediaCodec.INFO_OUTPUT_FORMAT_CHANGED:
                                     LimeLog.info("Output format changed");
@@ -209,17 +291,17 @@ public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
         int index;
         long startTime, queueTime;
 
-        startTime = System.currentTimeMillis();
+        startTime = MediaCodecHelper.getMonotonicMillis();
 
         index = videoDecoder.dequeueInputBuffer(wait ? (infiniteWait ? -1 : 3000) : 0);
         if (index < 0) {
             return index;
         }
 
-        queueTime = System.currentTimeMillis();
+        queueTime = MediaCodecHelper.getMonotonicMillis();
 
         if (queueTime - startTime >= 20) {
-            LimeLog.warning("Queue input buffer ran long: "+(queueTime - startTime)+" ms");
+            LimeLog.warning("Queue input buffer ran long: " + (queueTime - startTime) + " ms");
         }
 
         return index;
@@ -228,7 +310,6 @@ public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
     private void startLegacyRendererThread()
     {
         rendererThread = new Thread() {
-            @SuppressWarnings("deprecation")
             @Override
             public void run() {
                 BufferInfo info = new BufferInfo();
@@ -245,7 +326,7 @@ public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
                                 inputIndex = dequeueInputBuffer(false, false);
                                 du = depacketizer.pollNextDecodeUnit();
                                 if (du != null) {
-                                    lastDuDequeueTime = System.currentTimeMillis();
+                                    lastDuDequeueTime = MediaCodecHelper.getMonotonicMillis();
                                     notifyDuReceived(du);
                                 }
 
@@ -254,7 +335,7 @@ public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
                                     break;
                                 }
 
-                                submitDecodeUnit(du, videoDecoderInputBuffers[inputIndex], inputIndex);
+                                submitDecodeUnit(du, inputIndex);
 
                                 du = null;
                                 inputIndex = -1;
@@ -287,7 +368,7 @@ public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
                     if (du == null) {
                         du = depacketizer.pollNextDecodeUnit();
                         if (du != null) {
-                            lastDuDequeueTime = System.currentTimeMillis();
+                            lastDuDequeueTime = MediaCodecHelper.getMonotonicMillis();
                             notifyDuReceived(du);
                         }
                     }
@@ -295,12 +376,12 @@ public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
                     // If we've got both a decode unit and an input buffer, we'll
                     // submit now. Otherwise, we wait until we have one.
                     if (du != null && inputIndex >= 0) {
-                        long submissionTime = System.currentTimeMillis();
+                        long submissionTime = MediaCodecHelper.getMonotonicMillis();
                         if (submissionTime - lastDuDequeueTime >= 20) {
                             LimeLog.warning("Receiving an input buffer took too long: "+(submissionTime - lastDuDequeueTime)+" ms");
                         }
 
-                        submitDecodeUnit(du, videoDecoderInputBuffers[inputIndex], inputIndex);
+                        submitDecodeUnit(du, inputIndex);
 
                         // DU and input buffer have both been consumed
                         du = null;
@@ -326,7 +407,7 @@ public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
                             videoDecoder.releaseOutputBuffer(lastIndex, true);
 
                             // Add delta time to the totals (excluding probable outliers)
-                            long delta = System.currentTimeMillis()-(presentationTimeUs/1000);
+                            long delta = MediaCodecHelper.getMonotonicMillis()-(presentationTimeUs/1000);
                             if (delta >= 0 && delta < 1000) {
                                 decoderTimeMs += delta;
                                 totalTimeMs += delta;
@@ -339,9 +420,6 @@ public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
                                     if (inputIndex >= 0) {
                                         LockSupport.parkNanos(1);
                                     }
-                                    break;
-                                case MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED:
-                                    LimeLog.info("Output buffers changed");
                                     break;
                                 case MediaCodec.INFO_OUTPUT_FORMAT_CHANGED:
                                     LimeLog.info("Output format changed");
@@ -370,7 +448,9 @@ public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
         // Start the decoder
         videoDecoder.start();
 
-        videoDecoderInputBuffers = videoDecoder.getInputBuffers();
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+            legacyInputBuffers = videoDecoder.getInputBuffers();
+        }
 
         if (directSubmit) {
             startDirectSubmitRendererThread();
@@ -411,7 +491,7 @@ public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
         for (i = 0; i < 25; i++) {
             try {
                 videoDecoder.queueInputBuffer(inputBufferIndex,
-                        0, length,
+                        offset, length,
                         timestampUs, codecFlags);
                 break;
             } catch (Exception e) {
@@ -425,9 +505,44 @@ public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
         }
     }
 
+    // Using the new getInputBuffer() API on Lollipop allows
+    // the framework to do some performance optimizations for us
+    private ByteBuffer getEmptyInputBuffer(int inputBufferIndex) {
+        ByteBuffer buf;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            buf = videoDecoder.getInputBuffer(inputBufferIndex);
+        }
+        else {
+            buf = legacyInputBuffers[inputBufferIndex];
+
+            // Clear old input data pre-Lollipop
+            buf.clear();
+        }
+
+        return buf;
+    }
+
+    private void doProfileSpecificSpsPatching(SeqParameterSet sps) {
+        // Some devices benefit from setting constraint flags 4 & 5 to make this Constrained
+        // High Profile which allows the decoder to assume there will be no B-frames and
+        // reduce delay and buffering accordingly. Some devices (Marvell, Exynos 4) don't
+        // like it so we only set them on devices that are confirmed to benefit from it.
+        if (sps.profile_idc == 100 && constrainedHighProfile) {
+            LimeLog.info("Setting constraint set flags for constrained high profile");
+            sps.constraint_set_4_flag = true;
+            sps.constraint_set_5_flag = true;
+        }
+        else {
+            // Force the constraints unset otherwise (some may be set by default)
+            sps.constraint_set_4_flag = false;
+            sps.constraint_set_5_flag = false;
+        }
+    }
+
     @SuppressWarnings("deprecation")
-    private void submitDecodeUnit(DecodeUnit decodeUnit, ByteBuffer buf, int inputBufferIndex) {
-        long timestampUs = System.currentTimeMillis() * 1000;
+    private void submitDecodeUnit(DecodeUnit decodeUnit, int inputBufferIndex) {
+        long timestampUs = System.nanoTime() / 1000;
         if (timestampUs <= lastTimestampUs) {
             // We can't submit multiple buffers with the same timestamp
             // so bump it up by one before queuing
@@ -435,8 +550,7 @@ public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
         }
         lastTimestampUs = timestampUs;
 
-        // Clear old input data
-        buf.clear();
+        ByteBuffer buf = getEmptyInputBuffer(inputBufferIndex);
 
         int codecFlags = 0;
         int decodeUnitFlags = decodeUnit.getFlags();
@@ -452,6 +566,8 @@ public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
 
         if ((decodeUnitFlags & DecodeUnit.DU_FLAG_CODEC_CONFIG) != 0) {
             ByteBufferDescriptor header = decodeUnit.getBufferHead();
+
+            // H264 SPS
             if (header.data[header.offset+4] == 0x67) {
                 numSpsIn++;
 
@@ -460,7 +576,9 @@ public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
                 // Skip to the start of the NALU data
                 spsBuf.position(header.offset+5);
 
-                SeqParameterSet sps = SeqParameterSet.read(spsBuf);
+                // The H264Utils.readSPS function safely handles
+                // Annex B NALUs (including NALUs with escape sequences)
+                SeqParameterSet sps = H264Utils.readSPS(spsBuf);
 
                 // Some decoders rely on H264 level to decide how many buffers are needed
                 // Since we only need one frame buffered, we'll set the level as low as we can
@@ -492,12 +610,7 @@ public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
                 // Some devices don't like these so we remove them here.
                 sps.vuiParams.video_signal_type_present_flag = false;
                 sps.vuiParams.colour_description_present_flag = false;
-                sps.vuiParams.colour_primaries = 2;
-                sps.vuiParams.transfer_characteristics = 2;
-                sps.vuiParams.matrix_coefficients = 2;
                 sps.vuiParams.chroma_loc_info_present_flag = false;
-                sps.vuiParams.chroma_sample_loc_type_bottom_field = 0;
-                sps.vuiParams.chroma_sample_loc_type_top_field = 0;
 
                 if (needsSpsBitstreamFixup || isExynos4) {
                     // The SPS that comes in the current H264 bytestream doesn't set bitstream_restriction_flag
@@ -540,11 +653,16 @@ public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
                     savedSps = sps;
                 }
 
+                // Patch the SPS constraint flags
+                doProfileSpecificSpsPatching(sps);
+
                 // Write the annex B header
                 buf.put(header.data, header.offset, 5);
 
-                // Write the modified SPS to the input buffer
-                sps.write(buf);
+                // The H264Utils.writeSPS function safely handles
+                // Annex B NALUs (including NALUs with escape sequences)
+                ByteBuffer escapedNalu = H264Utils.writeSPS(sps, header.length);
+                buf.put(escapedNalu);
 
                 queueInputBuffer(inputBufferIndex,
                         0, buf.position(),
@@ -552,6 +670,8 @@ public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
 
                 depacketizer.freeDecodeUnit(decodeUnit);
                 return;
+
+                // H264 PPS
             } else if (header.data[header.offset+4] == 0x68) {
                 numPpsIn++;
 
@@ -562,6 +682,15 @@ public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
                     // Give the decoder the SPS again with the proper profile now
                     needsSpsReplay = true;
                 }
+            }
+            else if (header.data[header.offset+4] == 0x40) {
+                numVpsIn++;
+            }
+            else if (header.data[header.offset+4] == 0x42) {
+                numSpsIn++;
+            }
+            else if (header.data[header.offset+4] == 0x44) {
+                numPpsIn++;
             }
         }
 
@@ -584,9 +713,7 @@ public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
 
     private void replaySps() {
         int inputIndex = dequeueInputBuffer(true, true);
-        ByteBuffer inputBuffer = videoDecoderInputBuffers[inputIndex];
-
-        inputBuffer.clear();
+        ByteBuffer inputBuffer = getEmptyInputBuffer(inputIndex);
 
         // Write the Annex B header
         inputBuffer.put(new byte[]{0x00, 0x00, 0x00, 0x01, 0x67});
@@ -594,8 +721,13 @@ public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
         // Switch the H264 profile back to high
         savedSps.profile_idc = 100;
 
-        // Write the SPS data
-        savedSps.write(inputBuffer);
+        // Patch the SPS constraint flags
+        doProfileSpecificSpsPatching(savedSps);
+
+        // The H264Utils.writeSPS function safely handles
+        // Annex B NALUs (including NALUs with escape sequences)
+        ByteBuffer escapedNalu = H264Utils.writeSPS(savedSps, 128);
+        inputBuffer.put(escapedNalu);
 
         // No need for the SPS anymore
         savedSps = null;
@@ -603,7 +735,7 @@ public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
         // Queue the new SPS
         queueInputBuffer(inputIndex,
                 0, inputBuffer.position(),
-                System.currentTimeMillis() * 1000,
+                System.nanoTime() / 1000,
                 MediaCodec.BUFFER_FLAG_CODEC_CONFIG);
 
         LimeLog.info("SPS replay complete");
@@ -643,13 +775,8 @@ public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
         return (int)(totalTimeMs / totalFrames);
     }
 
-    @Override
-    public String getDecoderName() {
-        return decoderName;
-    }
-
     private void notifyDuReceived(DecodeUnit du) {
-        long currentTime = System.currentTimeMillis();
+        long currentTime = MediaCodecHelper.getMonotonicMillis();
         long delta = currentTime-du.getReceiveTimestamp();
         if (delta >= 0 && delta < 1000) {
             totalTimeMs += currentTime-du.getReceiveTimestamp();
@@ -673,7 +800,7 @@ public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
         }
 
         if (inputIndex >= 0) {
-            submitDecodeUnit(du, videoDecoderInputBuffers[inputIndex], inputIndex);
+            submitDecodeUnit(du, inputIndex);
         }
     }
 
@@ -700,10 +827,14 @@ public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
         public String toString() {
             String str = "";
 
-            str += "Decoder: "+renderer.decoderName+"\n";
+            str += "Format: "+renderer.videoFormat+"\n";
+            str += "AVC Decoder: "+renderer.avcDecoderName+"\n";
+            str += "HEVC Decoder: "+renderer.hevcDecoderName+"\n";
             str += "Initial video dimensions: "+renderer.initialWidth+"x"+renderer.initialHeight+"\n";
-            str += "In stats: "+renderer.numSpsIn+", "+renderer.numPpsIn+", "+renderer.numIframeIn+"\n";
+            str += "In stats: "+renderer.numVpsIn+", "+renderer.numSpsIn+", "+renderer.numPpsIn+", "+renderer.numIframeIn+"\n";
             str += "Total frames: "+renderer.totalFrames+"\n";
+            str += "Average end-to-end client latency: "+getAverageEndToEndLatency()+"ms\n";
+            str += "Average hardware decoder latency: "+getAverageDecoderLatency()+"ms\n";
 
             if (currentBuffer != null) {
                 str += "Current buffer: ";

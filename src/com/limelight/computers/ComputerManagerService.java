@@ -31,11 +31,12 @@ import android.os.IBinder;
 import org.xmlpull.v1.XmlPullParserException;
 
 public class ComputerManagerService extends Service {
-    private static final int SERVERINFO_POLLING_PERIOD_MS = 3000;
+    private static final int SERVERINFO_POLLING_PERIOD_MS = 1500;
     private static final int APPLIST_POLLING_PERIOD_MS = 30000;
+    private static final int APPLIST_FAILED_POLLING_RETRY_MS = 2000;
     private static final int MDNS_QUERY_PERIOD_MS = 1000;
     private static final int FAST_POLL_TIMEOUT = 500;
-    private static final int OFFLINE_POLL_TRIES = 3;
+    private static final int OFFLINE_POLL_TRIES = 5;
 
     private final ComputerManagerBinder binder = new ComputerManagerBinder();
 
@@ -119,7 +120,7 @@ public class ComputerManagerService extends Service {
         return true;
     }
 
-    private Thread createPollingThread(final ComputerDetails details) {
+    private Thread createPollingThread(final PollingTuple tuple) {
         Thread t = new Thread() {
             @Override
             public void run() {
@@ -127,24 +128,26 @@ public class ComputerManagerService extends Service {
                 int offlineCount = 0;
                 while (!isInterrupted() && pollingActive) {
                     try {
-                        // Check if this poll has modified the details
-                        if (!runPoll(details, false, offlineCount)) {
-                            LimeLog.warning(details.name + " is offline (try " + offlineCount + ")");
-                            offlineCount++;
-                        }
-                        else {
-                            offlineCount = 0;
+                        // Only allow one request to the machine at a time
+                        synchronized (tuple.networkLock) {
+                            // Check if this poll has modified the details
+                            if (!runPoll(tuple.computer, false, offlineCount)) {
+                                LimeLog.warning(tuple.computer.name + " is offline (try " + offlineCount + ")");
+                                offlineCount++;
+                            } else {
+                                offlineCount = 0;
+                            }
                         }
 
                         // Wait until the next polling interval
-                        Thread.sleep(SERVERINFO_POLLING_PERIOD_MS / ((offlineCount > 0) ? 2 : 1));
+                        Thread.sleep(SERVERINFO_POLLING_PERIOD_MS);
                     } catch (InterruptedException e) {
                         break;
                     }
                 }
             }
         };
-        t.setName("Polling thread for "+details.localIp.getHostAddress());
+        t.setName("Polling thread for " + tuple.computer.localIp.getHostAddress());
         return t;
     }
 
@@ -166,7 +169,7 @@ public class ComputerManagerService extends Service {
                         // Report this computer initially
                         listener.notifyComputerUpdated(tuple.computer);
 
-                        tuple.thread = createPollingThread(tuple.computer);
+                        tuple.thread = createPollingThread(tuple);
                         tuple.thread.start();
                     }
                 }
@@ -283,7 +286,7 @@ public class ComputerManagerService extends Service {
 
                     // Start a polling thread if polling is active
                     if (pollingActive && tuple.thread == null) {
-                        tuple.thread = createPollingThread(details);
+                        tuple.thread = createPollingThread(tuple);
                         tuple.thread.start();
                     }
 
@@ -293,7 +296,10 @@ public class ComputerManagerService extends Service {
             }
 
             // If we got here, we didn't find an entry
-            PollingTuple tuple = new PollingTuple(details, pollingActive ? createPollingThread(details) : null);
+            PollingTuple tuple = new PollingTuple(details, null);
+            if (pollingActive) {
+                tuple.thread = createPollingThread(tuple);
+            }
             pollingTuples.add(tuple);
             if (tuple.thread != null) {
                 tuple.thread.start();
@@ -368,6 +374,11 @@ public class ComputerManagerService extends Service {
     }
 
     private ComputerDetails tryPollIp(ComputerDetails details, InetAddress ipAddr) {
+        // Fast poll this address first to determine if we can connect at the TCP layer
+        if (!fastPollIp(ipAddr)) {
+            return null;
+        }
+
         try {
             NvHTTP http = new NvHTTP(ipAddr, idManager.getUniqueId(),
                     null, PlatformBinding.getCryptoProvider(ComputerManagerService.this));
@@ -451,7 +462,7 @@ public class ComputerManagerService extends Service {
         return ComputerDetails.Reachability.OFFLINE;
     }
 
-    private boolean pollComputer(ComputerDetails details) throws InterruptedException {
+    private ReachabilityTuple pollForReachability(ComputerDetails details) throws InterruptedException {
         ComputerDetails polledDetails;
         ComputerDetails.Reachability reachability;
 
@@ -465,11 +476,11 @@ public class ComputerManagerService extends Service {
             LimeLog.info("Starting fast poll for "+details.name+" ("+details.localIp+", "+details.remoteIp+")");
             reachability = fastPollPc(details.localIp, details.remoteIp);
             LimeLog.info("Fast poll for "+details.name+" returned "+reachability.toString());
-        }
 
-        // If no connection could be established to either IP address, there's nothing we can do
-        if (reachability == ComputerDetails.Reachability.OFFLINE) {
-            return false;
+            // If no connection could be established to either IP address, there's nothing we can do
+            if (reachability == ComputerDetails.Reachability.OFFLINE) {
+                return null;
+            }
         }
 
         boolean localFirst = (reachability == ComputerDetails.Reachability.LOCAL);
@@ -481,6 +492,7 @@ public class ComputerManagerService extends Service {
             polledDetails = tryPollIp(details, details.remoteIp);
         }
 
+        InetAddress reachableAddr = null;
         if (polledDetails == null && !details.localIp.equals(details.remoteIp)) {
             // Failed, so let's try the fallback
             if (!localFirst) {
@@ -490,27 +502,59 @@ public class ComputerManagerService extends Service {
                 polledDetails = tryPollIp(details, details.remoteIp);
             }
 
-            // The fallback poll worked
             if (polledDetails != null) {
-                polledDetails.reachability = !localFirst ? ComputerDetails.Reachability.LOCAL :
-                    ComputerDetails.Reachability.REMOTE;
+                // The fallback poll worked
+                reachableAddr = !localFirst ? details.localIp : details.remoteIp;
             }
         }
         else if (polledDetails != null) {
-            polledDetails.reachability = localFirst ? ComputerDetails.Reachability.LOCAL :
-                ComputerDetails.Reachability.REMOTE;
+            reachableAddr = localFirst ? details.localIp : details.remoteIp;
         }
 
-        // Machine was unreachable both tries
-        if (polledDetails == null) {
+        if (reachableAddr == null) {
+            return null;
+        }
+
+        if (polledDetails.remoteIp.equals(reachableAddr)) {
+            polledDetails.reachability = ComputerDetails.Reachability.REMOTE;
+        }
+        else if (polledDetails.localIp.equals(reachableAddr)) {
+            polledDetails.reachability = ComputerDetails.Reachability.LOCAL;
+        }
+        else {
+            polledDetails.reachability = ComputerDetails.Reachability.UNKNOWN;
+        }
+
+        return new ReachabilityTuple(polledDetails, reachableAddr);
+    }
+
+    private boolean pollComputer(ComputerDetails details) throws InterruptedException {
+        ReachabilityTuple initialReachTuple = pollForReachability(details);
+        if (initialReachTuple == null) {
             return false;
+        }
+
+        if (initialReachTuple.computer.reachability == ComputerDetails.Reachability.UNKNOWN) {
+            // Neither IP address reported in the serverinfo response was the one we used.
+            // Poll again to see if we can contact this machine on either of its reported addresses.
+            ReachabilityTuple confirmationReachTuple = pollForReachability(initialReachTuple.computer);
+            if (confirmationReachTuple == null) {
+                // Neither of those seem to work, so we'll hold onto the address that did work
+                initialReachTuple.computer.localIp = initialReachTuple.reachableAddress;
+                initialReachTuple.computer.reachability = ComputerDetails.Reachability.LOCAL;
+            }
+            else {
+                // We got it on one of the returned addresses; replace the original reach tuple
+                // with the new one
+                initialReachTuple = confirmationReachTuple;
+            }
         }
 
         // Save the old MAC address
         String savedMacAddress = details.macAddress;
 
         // If we got here, it's reachable
-        details.update(polledDetails);
+        details.update(initialReachTuple.computer);
 
         // If the new MAC address is empty, restore the old one (workaround for GFE bug)
         if (details.macAddress.equals("00:00:00:00:00:00") && savedMacAddress != null) {
@@ -569,6 +613,7 @@ public class ComputerManagerService extends Service {
         private Thread thread;
         private final ComputerDetails computer;
         private final Object pollEvent = new Object();
+        private boolean receivedAppList = false;
 
         public ApplistPoller(ComputerDetails computer) {
             this.computer = computer;
@@ -583,13 +628,33 @@ public class ComputerManagerService extends Service {
         private boolean waitPollingDelay() {
             try {
                 synchronized (pollEvent) {
-                    pollEvent.wait(APPLIST_POLLING_PERIOD_MS);
+                    if (receivedAppList) {
+                        // If we've already reported an app list successfully,
+                        // wait the full polling period
+                        pollEvent.wait(APPLIST_POLLING_PERIOD_MS);
+                    }
+                    else {
+                        // If we've failed to get an app list so far, retry much earlier
+                        pollEvent.wait(APPLIST_FAILED_POLLING_RETRY_MS);
+                    }
                 }
             } catch (InterruptedException e) {
                 return false;
             }
 
             return thread != null && !thread.isInterrupted();
+        }
+
+        private PollingTuple getPollingTuple(ComputerDetails details) {
+            synchronized (pollingTuples) {
+                for (PollingTuple tuple : pollingTuples) {
+                    if (details.uuid.equals(tuple.computer.uuid)) {
+                        return tuple;
+                    }
+                }
+            }
+
+            return null;
         }
 
         public void start() {
@@ -622,9 +687,23 @@ public class ComputerManagerService extends Service {
                         NvHTTP http = new NvHTTP(selectedAddr, idManager.getUniqueId(),
                                 null, PlatformBinding.getCryptoProvider(ComputerManagerService.this));
 
+                        PollingTuple tuple = getPollingTuple(computer);
+
                         try {
-                            // Query the app list from the server
-                            String appList = http.getAppListRaw();
+                            String appList;
+                            if (tuple != null) {
+                                // If we're polling this machine too, grab the network lock
+                                // while doing the app list request to prevent other requests
+                                // from being issued in the meantime.
+                                synchronized (tuple.networkLock) {
+                                    appList = http.getAppListRaw();
+                                }
+                            }
+                            else {
+                                // No polling is happening now, so we just call it directly
+                                appList = http.getAppListRaw();
+                            }
+
                             List<NvApp> list = NvHTTP.getAppListByReader(new StringReader(appList));
                             if (appList != null && !appList.isEmpty() && !list.isEmpty()) {
                                 // Open the cache file
@@ -644,6 +723,7 @@ public class ComputerManagerService extends Service {
 
                                 // Update the computer
                                 computer.rawAppList = appList;
+                                receivedAppList = true;
 
                                 // Notify that the app list has been updated
                                 // and ensure that the thread is still active
@@ -680,9 +760,21 @@ public class ComputerManagerService extends Service {
 class PollingTuple {
     public Thread thread;
     public final ComputerDetails computer;
+    public final Object networkLock;
 
     public PollingTuple(ComputerDetails computer, Thread thread) {
         this.computer = computer;
         this.thread = thread;
+        this.networkLock = new Object();
+    }
+}
+
+class ReachabilityTuple {
+    public final InetAddress reachableAddress;
+    public final ComputerDetails computer;
+
+    public ReachabilityTuple(ComputerDetails computer, InetAddress reachableAddress) {
+        this.computer = computer;
+        this.reachableAddress = reachableAddress;
     }
 }

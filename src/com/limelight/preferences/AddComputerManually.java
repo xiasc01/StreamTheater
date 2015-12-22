@@ -180,3 +180,4 @@ public class AddComputerManually extends Activity {
                     ComputerManagerService.class), serviceConnection, Service.BIND_AUTO_CREATE);
     }
 }
+

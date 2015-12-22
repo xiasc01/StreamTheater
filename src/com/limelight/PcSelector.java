@@ -30,9 +30,9 @@ import android.preference.PreferenceManager;
 public class PcSelector {
 	private MainActivity activity;
 	private List<ComputerDetails> compList;
-	
+
     private ComputerManagerService.ComputerManagerBinder managerBinder;
-    private boolean freezeUpdates, runningPolling;
+    private boolean freezeUpdates, runningPolling, hasResumed;
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         public void onServiceConnected(ComponentName className, IBinder binder) {
             final ComputerManagerService.ComputerManagerBinder localBinder =
@@ -115,7 +115,7 @@ public class PcSelector {
             runningPolling = false;
         }
     }
-    
+
     public ComputerDetails findByUUID(String compUUID)
     {
         int i = 0;
@@ -124,12 +124,12 @@ public class PcSelector {
         	if(compList.get(i).uuid.equals(UUID.fromString(compUUID)))
         	{
         		return compList.get(i);
-        	}
-        	
+            }
+
         }
     	return null;
     }
-    
+
     static final int PS_NOT_PAIRED = 0;
     static final int PS_PAIRED = 1;
 	static final int PS_PIN_WRONG = 2;
@@ -143,10 +143,10 @@ public class PcSelector {
             else if(comp.pairState == PairingManager.PairState.PAIRED)		return PS_PAIRED;
             else if(comp.pairState == PairingManager.PairState.PIN_WRONG)	return PS_PIN_WRONG;
             else return PS_FAILED;
-    	} 
+        }
         return PS_FAILED;
     }
-    
+        
     static final int CS_ONLINE = 0;
     static final int CS_OFFLINE = 1;
     static final int CS_UNKNOWN = 2;
@@ -161,7 +161,7 @@ public class PcSelector {
         }
         return CS_UNKNOWN;
     }
-    
+
     static final int RS_LOCAL = 0;
     static final int RS_REMOTE = 1;
     static final int RS_OFFLINE = 2;
@@ -180,7 +180,7 @@ public class PcSelector {
     {
 		doPair(findByUUID(compUUID));
     }
-  
+
     private void doPair(final ComputerDetails computer) {
         if (computer.reachability == ComputerDetails.Reachability.OFFLINE) {
         	MainActivity.nativeShowError(activity.getAppPtr(), activity.getResources().getString(R.string.pair_pc_offline));
@@ -287,7 +287,7 @@ public class PcSelector {
             return 2;
         }
     }
-    
+
     private void updateComputer(ComputerDetails details) {
         int i = 0;
         boolean found = false;
@@ -296,22 +296,22 @@ public class PcSelector {
         	if(compList.get(i).uuid == details.uuid)
         	{
         		found = true;
-        		break;
-        	}
-        	
+                break;
+            }
+
         }
         if(found)
         	compList.set(i, details);
         else
         	compList.add(details);
-        
+
         LimeLog.info("Found PC " + details.toString());
         int pairInt=0;
         if(details.pairState == PairingManager.PairState.NOT_PAIRED)		pairInt= PS_NOT_PAIRED;
         else if(details.pairState == PairingManager.PairState.PAIRED)		pairInt= PS_PAIRED;
         else if(details.pairState == PairingManager.PairState.PIN_WRONG)	pairInt= PS_PIN_WRONG;
         else pairInt= PS_FAILED;
-        
+
         int reachInt=0;
         if(details.reachability == ComputerDetails.Reachability.LOCAL) reachInt = RS_LOCAL;
         else if(details.reachability == ComputerDetails.Reachability.REMOTE) reachInt = RS_REMOTE;
@@ -328,9 +328,9 @@ public class PcSelector {
 	    	ServerHelper.doQuit(activity,
 	                ServerHelper.getCurrentAddressFromComputer(comp),
 	                new NvApp("app", 0), managerBinder, null);
-    	}
+        }
     }
-    
+
     public class ComputerObject {
         public ComputerDetails details;
 
