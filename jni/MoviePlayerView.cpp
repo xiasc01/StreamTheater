@@ -105,7 +105,6 @@ MoviePlayerView::MoviePlayerView( CinemaApp &cinema ) :
 	StreamMenu( NULL ),
 	Button1080( Cinema ),
 	Button720( Cinema ),
-	Button480( Cinema ),
 	Button60FPS( Cinema ),
 	Button30FPS( Cinema ),
 	ButtonHostAudio( Cinema ),
@@ -294,13 +293,11 @@ bool OffActiveCallback				( UITextButton *button, void *object ) { return ( ( Mo
 
 void Button1080Callback				( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->Button1080pPressed(); }
 void Button720Callback				( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->Button720Pressed(); }
-void Button480Callback				( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->Button480Pressed(); }
 void Button60FPSCallback			( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->Button60FPSPressed(); }
 void Button30FPSCallback			( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->Button30FPSPressed(); }
 void HostAudioCallback				( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->HostAudioPressed(); }
 bool Button1080IsSelectedCallback	( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->Button1080IsSelected(); }
 bool Button720IsSelectedCallback	( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->Button720IsSelected(); }
-bool Button480IsSelectedCallback	( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->Button480IsSelected(); }
 bool Button60FPSIsSelectedCallback	( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->Button60FPSIsSelected(); }
 bool Button30FPSIsSelectedCallback	( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->Button30FPSIsSelected(); }
 bool HostAudioIsSelectedCallback	( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->HostAudioIsSelected(); }
@@ -444,10 +441,10 @@ void MoviePlayerView::InitializeGamepadMouse()
 	gamepadButtonSettings.PushBack( 0 );
 	gamepadButtonSettings.PushBack( GPMOUSE_B1 + 2 );
 	gamepadButtonSettings.PushBack( GPMOUSE_SCROLL_UP );
+	gamepadButtonSettings.PushBack( GPMOUSE_TOGGLE_VR_SCREEN_LOCK );
+	gamepadButtonSettings.PushBack( AKEYCODE_2 );
 	gamepadButtonSettings.PushBack( AKEYCODE_1 );
 	gamepadButtonSettings.PushBack( AKEYCODE_3 );
-	gamepadButtonSettings.PushBack( AKEYCODE_2 );
-	gamepadButtonSettings.PushBack( AKEYCODE_4 );
 	gamepadButtonSettings.PushBack( 0 );
 	gamepadButtonSettings.PushBack( 0 );
 	gamepadButtonSettings.PushBack( AKEYCODE_W );
@@ -936,13 +933,6 @@ void MoviePlayerView::CreateMenu( OvrGuiSys & guiSys )
 	TextButtonHelper(Button720);
 	Button720.SetOnClick( Button720Callback, this);
 	Button720.SetIsSelected( Button720IsSelectedCallback, this);
-
-	Button480.AddToMenu( guiSys, PlaybackControlsMenu, StreamMenu );
-	Button480.SetLocalPosition( PixelPos( MENU_X * -1, MENU_Y * 3, 1 ) );
-	Button480.SetText( CinemaStrings::ButtonText_Button480 );
-	TextButtonHelper(Button480);
-	Button480.SetOnClick( Button480Callback, this);
-	Button480.SetIsSelected( Button480IsSelectedCallback, this);
 
 	Button60FPS.AddToMenu( guiSys, PlaybackControlsMenu, StreamMenu );
 	Button60FPS.SetLocalPosition( PixelPos( MENU_X * 1, MENU_Y * 1, 1 ) );
@@ -2276,14 +2266,6 @@ void MoviePlayerView::Button720Pressed()
 	UpdateMenus();
 	Cinema.StartMoviePlayback(streamWidth, streamHeight, streamFPS, streamHostAudio);
 }
-void MoviePlayerView::Button480Pressed()
-{
-	Cinema.SceneMgr.ClearMovie();
-	streamWidth = 854;
-	streamHeight = 480;
-	UpdateMenus();
-	Cinema.StartMoviePlayback(streamWidth, streamHeight, streamFPS, streamHostAudio);
-}
 void MoviePlayerView::Button60FPSPressed()
 {
 	Cinema.SceneMgr.ClearMovie();
@@ -2382,10 +2364,6 @@ bool MoviePlayerView::Button720IsSelected()
 {
 	return streamWidth == 1280 && streamHeight == 720;
 }
-bool MoviePlayerView::Button480IsSelected()
-{
-	return streamWidth == 854 && streamHeight == 480;
-}
 bool MoviePlayerView::Button60FPSIsSelected()
 {
 	return streamFPS == 60;
@@ -2438,7 +2416,6 @@ void MoviePlayerView::UpdateMenus()
 
 	Button1080.UpdateButtonState();
 	Button720.UpdateButtonState();
-	Button480.UpdateButtonState();
 	Button60FPS.UpdateButtonState();
 	Button30FPS.UpdateButtonState();
 	ButtonHostAudio.UpdateButtonState();

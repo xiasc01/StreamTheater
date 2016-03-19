@@ -160,7 +160,6 @@ private:
 	UITextButton *						ButtonOff;
 	UITextButton *						Button1080;
 	UITextButton *						Button720;
-	UITextButton *						Button480;
 	UITextButton *						Button60FPS;
 	UITextButton *						Button30FPS;
 	UITextButton *						ButtonHostAudio;

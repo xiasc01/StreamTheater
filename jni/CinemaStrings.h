@@ -67,7 +67,6 @@ public:
 	static String	ButtonText_Button30FPS;
 	static String	ButtonText_ButtonHostAudio;
 	static String	ButtonText_Button720;
-	static String	ButtonText_Button480;
 	static String	ButtonText_Button60FPS;
 	static String	ButtonText_ButtonDistance;
 	static String	ButtonText_ButtonSize;

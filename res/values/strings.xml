@@ -120,7 +120,6 @@
 	<string name="ButtonText_LabelVRYScale">Vertical Scale</string>
 	<string name="ButtonText_Button1080">1080p</string>
 	<string name="ButtonText_Button720">720p</string>
-	<string name="ButtonText_Button480">480p</string>
 	<string name="ButtonText_Button60FPS">60 FPS</string>
 	<string name="ButtonText_Button30FPS">30 FPS</string>
 	<string name="ButtonText_ButtonHostAudio">Host Audio</string>

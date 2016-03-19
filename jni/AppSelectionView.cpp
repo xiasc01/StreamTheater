@@ -105,7 +105,6 @@ AppSelectionView::AppSelectionView( CinemaApp &cinema ) :
 	ButtonOff( NULL ),
 	Button1080( NULL ),
 	Button720( NULL ),
-	Button480( NULL ),
 	Button60FPS( NULL ),
 	Button30FPS( NULL ),
 	ButtonHostAudio( NULL ),
@@ -690,22 +689,6 @@ void AppSelectionView::CreateMenu( OvrGuiSys & guiSys )
 	Button720->SetOnClick( SettingsCallback, this);
 	Button720->SetIsSelected( SettingsSelectedCallback, this);
 
-	Button480 = new UITextButton( Cinema );
-	Button480->AddToMenu( guiSys, Menu, settingsMenu );
-	Button480->SetLocalPosition( Vector3f( column1, rowpos += rowinc, 0.1f ) );
-	Button480->SetText( CinemaStrings::ButtonText_Button480 );
-	TextButtonHelper(Button480);
-	Button480->SetOnClick( SettingsCallback, this);
-	Button480->SetIsSelected( SettingsSelectedCallback, this);
-
-	Button60FPS = new UITextButton( Cinema );
-	Button60FPS->AddToMenu( guiSys, Menu, settingsMenu );
-	Button60FPS->SetLocalPosition( Vector3f( column1, rowpos += rowinc, 0.1f ) );
-	Button60FPS->SetText( CinemaStrings::ButtonText_Button60FPS );
-	TextButtonHelper(Button60FPS);
-	Button60FPS->SetOnClick( SettingsCallback, this);
-	Button60FPS->SetIsSelected( SettingsSelectedCallback, this);
-
 	Button30FPS = new UITextButton( Cinema );
 	Button30FPS->AddToMenu( guiSys, Menu, settingsMenu );
 	Button30FPS->SetLocalPosition( Vector3f( column1, rowpos += rowinc, 0.1f ) );
@@ -842,7 +825,6 @@ void AppSelectionView::SettingsButtonPressed()
 	ButtonOff->UpdateButtonState();
 	Button1080->UpdateButtonState();
 	Button720->UpdateButtonState();
-	Button480->UpdateButtonState();
 	Button60FPS->UpdateButtonState();
 	Button30FPS->UpdateButtonState();
 	ButtonHostAudio->UpdateButtonState();
@@ -878,10 +860,6 @@ void AppSelectionView::SettingsPressed( UITextButton *button)
 	{
 		streamWidth = 1280; streamHeight = 720;
 	}
-	else if( button->GetText() == CinemaStrings::ButtonText_Button480 )
-	{
-		streamWidth = 854; streamHeight = 480;
-	}
 	else if( button->GetText() == CinemaStrings::ButtonText_Button60FPS )
 	{
 		streamFPS = 60;
@@ -909,7 +887,6 @@ void AppSelectionView::SettingsPressed( UITextButton *button)
 	ButtonOff->UpdateButtonState();
 	Button1080->UpdateButtonState();
 	Button720->UpdateButtonState();
-	Button480->UpdateButtonState();
 	Button60FPS->UpdateButtonState();
 	Button30FPS->UpdateButtonState();
 	ButtonHostAudio->UpdateButtonState();
@@ -942,10 +919,6 @@ bool AppSelectionView::SettingsIsSelected( UITextButton *button)
 	else if( button->GetText() == CinemaStrings::ButtonText_Button720 )
 	{
 		return streamWidth == 1280 && streamHeight == 720;
-	}
-	else if( button->GetText() == CinemaStrings::ButtonText_Button480 )
-	{
-		return streamWidth == 854 && streamHeight == 480;
 	}
 	else if( button->GetText() == CinemaStrings::ButtonText_Button60FPS )
 	{

@@ -284,7 +284,6 @@ private:
 	UIContainer *			StreamMenu;
 	UITextButton			Button1080;
 	UITextButton			Button720;
-	UITextButton			Button480;
 	UITextButton			Button60FPS;
 	UITextButton			Button30FPS;
 	UITextButton			ButtonHostAudio;
@@ -483,8 +482,6 @@ private:
 	void			Button1080pPressed();
 	friend void		Button720Callback( UITextButton *button, void *object );
 	void			Button720Pressed();
-	friend void		Button480Callback( UITextButton *button, void *object );
-	void			Button480Pressed();
 	friend void		Button60FPSCallback( UITextButton *button, void *object );
 	void			Button60FPSPressed();
 	friend void		Button30FPSCallback( UITextButton *button, void *object );
@@ -496,8 +493,6 @@ private:
 	bool			Button1080IsSelected();
 	friend bool		Button720IsSelectedCallback( UITextButton *button, void *object );
 	bool			Button720IsSelected();
-	friend bool		Button480IsSelectedCallback( UITextButton *button, void *object );
-	bool			Button480IsSelected();
 	friend bool		Button60FPSIsSelectedCallback( UITextButton *button, void *object );
 	bool			Button60FPSIsSelected();
 	friend bool		Button30FPSIsSelectedCallback( UITextButton *button, void *object );
