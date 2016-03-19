@@ -76,14 +76,31 @@ public class MediaCodecHelper {
 
 		constrainedHighProfilePrefixes = new LinkedList<String>();
 		constrainedHighProfilePrefixes.add("omx.intel");
+	}
 
+	static {
 		whitelistedHevcDecoders = new LinkedList<>();
+
+		// Exynos seems to be the only HEVC decoder that works reliably
 		whitelistedHevcDecoders.add("omx.exynos");
-		whitelistedHevcDecoders.add("omx.nvidia");
-		whitelistedHevcDecoders.add("omx.mtk");
-		whitelistedHevcDecoders.add("omx.amlogic");
-		whitelistedHevcDecoders.add("omx.rk");
-		// omx.qcom added conditionally during initialization
+
+		// TODO: This needs a similar fixup to the Tegra 3 otherwise it buffers 16 frames
+		//whitelistedHevcDecoders.add("omx.nvidia");
+
+		// Sony ATVs have broken MediaTek codecs (decoder hangs after rendering the first frame).
+		// I know the Fire TV 2 works, so I'll just whitelist Amazon devices which seem
+		// to actually be tested. Ugh...
+		if (Build.MANUFACTURER.equalsIgnoreCase("Amazon")) {
+			whitelistedHevcDecoders.add("omx.mtk");
+		}
+
+		// These theoretically have good HEVC decoding capabilities (potentially better than
+		// their AVC decoders), but haven't been tested enough
+		//whitelistedHevcDecoders.add("omx.amlogic");
+		//whitelistedHevcDecoders.add("omx.rk");
+
+		// Based on GPU attributes queried at runtime, the omx.qcom prefix will be added
+		// during initialization to avoid SoCs with broken HEVC decoders.
 	}
 
 	public static void initializeWithContext(Context context) {
@@ -169,15 +186,19 @@ public class MediaCodecHelper {
     }
 
 	public static boolean decoderIsWhitelistedForHevc(String decoderName) {
+		// TODO: Shield Tablet K1/LTE?
+		//
 		// NVIDIA does partial HEVC acceleration on the Shield Tablet. I don't know
 		// whether the performance is good enough to use for streaming, but they're
 		// using the same omx.nvidia.h265.decode name as the Shield TV which has a
 		// fully accelerated HEVC pipeline. AFAIK, the only K1 device with this
 		// partially accelerated HEVC decoder is the Shield Tablet, so I'll
 		// check for it here.
-		if (Build.DEVICE.equalsIgnoreCase("shieldtablet")) {
+		//
+		// TODO: Temporarily disabled with NVIDIA HEVC support
+		/*if (Build.DEVICE.equalsIgnoreCase("shieldtablet")) {
 			return false;
-		}
+		}*/
 
 		// Google didn't have official support for HEVC (or more importantly, a CTS test) until
 		// Lollipop. I've seen some MediaTek devices on 4.4 crash when attempting to use HEVC,

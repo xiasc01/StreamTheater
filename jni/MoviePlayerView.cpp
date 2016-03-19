@@ -1232,20 +1232,21 @@ void MoviePlayerView::BackPressed()
 {
 	LOG( "BackPressed" );
 
-	if( Cinema.SceneMgr.SceneInfo.UseVRScreen && screenMotionPaused )
-	{
-		LOG( "Freeing screen!" );
-		screenMotionPaused = false;
-		return;
-	}
-
 	if(uiActive)
 	{
 		HideUI();
 	}
 	else
 	{
-		ShowUI();
+		if( Cinema.SceneMgr.SceneInfo.UseVRScreen && screenMotionPaused )
+		{
+			LOG( "Freeing screen!" );
+			screenMotionPaused = false;
+		}
+		else
+		{
+			ShowUI();
+		}
 	}
 }
 
@@ -1256,7 +1257,6 @@ void MoviePlayerView::BackPressedDouble()
 	if ( Cinema.SceneMgr.SceneInfo.UseVRScreen && !uiActive )
 	{
 		ShowUI();
-		screenMotionPaused = true;
 	}
 	else if ( Cinema.AllowTheaterSelection() )
 	{

@@ -4,12 +4,15 @@ import com.vrmatter.streamtheater.R;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.app.Activity;
 import android.preference.Preference;
+import android.preference.PreferenceCategory;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
+import android.preference.PreferenceScreen;
 
 import com.limelight.PcSelector;
 import com.limelight.utils.UiHelper;
@@ -61,6 +64,15 @@ public class StreamSettings extends Activity {
             super.onCreate(savedInstanceState);
 
             addPreferencesFromResource(R.xml.preferences);
+            PreferenceScreen screen = getPreferenceScreen();
+
+            // hide on-screen controls category on non touch screen devices
+            if (!getActivity().getPackageManager().
+                    hasSystemFeature("android.hardware.touchscreen")) {
+                PreferenceCategory category =
+                        (PreferenceCategory) findPreference("category_onscreen_controls");
+                screen.removePreference(category);
+            }
 
             // Add a listener to the FPS and resolution preference
             // so the bitrate can be auto-adjusted

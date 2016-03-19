@@ -32,7 +32,7 @@ public class PcSelector {
 	private List<ComputerDetails> compList;
 
     private ComputerManagerService.ComputerManagerBinder managerBinder;
-    private boolean freezeUpdates, runningPolling, hasResumed;
+    private boolean freezeUpdates, runningPolling;
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         public void onServiceConnected(ComponentName className, IBinder binder) {
             final ComputerManagerService.ComputerManagerBinder localBinder =
@@ -75,11 +75,8 @@ public class PcSelector {
     }
 
     public void startComputerUpdates() {
-        if (managerBinder != null) {
-            if (runningPolling) {
-                return;
-            }
-
+        // Only allow polling to start if we're bound to CMS, polling is not already running.
+        if (managerBinder != null && !runningPolling) {
             freezeUpdates = false;
             managerBinder.startPolling(new ComputerManagerListener() {
                 @Override

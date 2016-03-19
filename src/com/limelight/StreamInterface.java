@@ -6,6 +6,7 @@ import com.vrmatter.streamtheater.R;
 import com.limelight.binding.PlatformBinding;
 import com.limelight.binding.input.ControllerHandler;
 import com.limelight.binding.input.KeyboardTranslator;
+import com.limelight.binding.input.NvMouseHelper;
 import com.limelight.binding.input.TouchContext;
 import com.limelight.binding.input.driver.UsbDriverService;
 import com.limelight.binding.input.evdev.EvdevHandler;
@@ -328,8 +329,10 @@ public class StreamInterface implements SurfaceHolder.Callback,
         SpinnerDialog.closeDialogs(activity);
         Dialog.closeDialogs();
 
+		if (controllerHandler != null) {
         InputManager inputManager = (InputManager) activity.getSystemService(Context.INPUT_SERVICE);
         inputManager.unregisterInputDeviceListener(controllerHandler);
+		}
 
         wifiLock.release();
 
@@ -338,6 +341,7 @@ public class StreamInterface implements SurfaceHolder.Callback,
         	activity.unbindService(usbDriverServiceConnection);
         }
 
+        if (conn != null) {
         VideoDecoderRenderer.VideoFormat videoFormat = conn.getActiveVideoFormat();
 
         displayedFailureDialog = true;
@@ -370,17 +374,22 @@ public class StreamInterface implements SurfaceHolder.Callback,
         	// TODO: Need a non-error message passing.  Doesn't display right now anyway, so commenting out to stop crashes
             // MainActivity.nativeShowError(activity.getAppPtr(), message);
         }
+        }
 
     }
 
     private final Runnable toggleGrab = new Runnable() {
         @Override
         public void run() {
+            if (grabbedInput) {
+                NvMouseHelper.setCursorVisibility(activity, true);
             if (evdevHandler != null) {
-                if (grabbedInput) {
                     evdevHandler.ungrabAll();
                 }
+            }
                 else {
+                NvMouseHelper.setCursorVisibility(activity, false);
+                if (evdevHandler != null) {
                     evdevHandler.regrabAll();
                 }
             }
@@ -570,7 +579,9 @@ public class StreamInterface implements SurfaceHolder.Callback,
         else if ((event.getSource() & InputDevice.SOURCE_CLASS_POINTER) != 0)
         {
             // This case is for mice
-            if (event.getSource() == InputDevice.SOURCE_MOUSE)
+            if (event.getSource() == InputDevice.SOURCE_MOUSE ||
+                    (event.getPointerCount() >= 1 &&
+                            event.getToolType(0) == MotionEvent.TOOL_TYPE_MOUSE))
             {
                 int changedButtons = event.getButtonState() ^ lastButtonState;
 
@@ -607,6 +618,18 @@ public class StreamInterface implements SurfaceHolder.Callback,
                     }
                 }
 
+                // Get relative axis values if we can
+                if (NvMouseHelper.eventHasRelativeMouseAxes(event)) {
+                    // Send the deltas straight from the motion event
+                    conn.sendMouseMove((short)NvMouseHelper.getRelativeAxisX(event),
+                            (short)NvMouseHelper.getRelativeAxisY(event));
+
+                    // We have to also update the position Android thinks the cursor is at
+                    // in order to avoid jumping when we stop moving or click.
+                    lastMouseX = (int)event.getX();
+                    lastMouseY = (int)event.getY();
+                }
+                else {
                 // First process the history
                 for (int i = 0; i < event.getHistorySize(); i++) {
                     updateMousePosition((int)event.getHistoricalX(i), (int)event.getHistoricalY(i));
@@ -614,12 +637,19 @@ public class StreamInterface implements SurfaceHolder.Callback,
 
                 // Now process the current values
                 updateMousePosition((int)event.getX(), (int)event.getY());
+                }
 
                 lastButtonState = event.getButtonState();
             }
             // This case is for touch-based input devices
             else
             {
+//                if (virtualController != null &&
+//                        virtualController.getControllerMode() == VirtualController.ControllerMode.Configuration) {
+                    // Ignore presses when the virtual controller is in configuration mode
+//                    return true;
+//                }
+
                 int actionIndex = event.getActionIndex();
 
                 int eventX = (int)event.getX(actionIndex);
@@ -751,6 +781,9 @@ public class StreamInterface implements SurfaceHolder.Callback,
             evdevHandler.stop();
             evdevHandler = null;
         }
+
+        // Enable cursor visibility again
+        NvMouseHelper.setCursorVisibility(activity, true);
     }
 
     @Override
@@ -789,6 +822,16 @@ public class StreamInterface implements SurfaceHolder.Callback,
 
         connecting = false;
         connected = true;
+
+        activity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                // Hide the mouse cursor now. Doing it before
+                // dismissing the spinner seems to be undone
+                // when the spinner gets displayed.
+                NvMouseHelper.setCursorVisibility(activity, false);
+            }
+        });
 
         hideSystemUi(1000);
     }
