@@ -689,6 +689,14 @@ void AppSelectionView::CreateMenu( OvrGuiSys & guiSys )
 	Button720->SetOnClick( SettingsCallback, this);
 	Button720->SetIsSelected( SettingsSelectedCallback, this);
 
+	Button60FPS = new UITextButton( Cinema );
+	Button60FPS->AddToMenu( guiSys, Menu, settingsMenu );
+	Button60FPS->SetLocalPosition( Vector3f( column1, rowpos += rowinc, 0.1f ) );
+	Button60FPS->SetText( CinemaStrings::ButtonText_Button60FPS );
+	TextButtonHelper(Button60FPS);
+	Button60FPS->SetOnClick( SettingsCallback, this);
+	Button60FPS->SetIsSelected( SettingsSelectedCallback, this);
+
 	Button30FPS = new UITextButton( Cinema );
 	Button30FPS->AddToMenu( guiSys, Menu, settingsMenu );
 	Button30FPS->SetLocalPosition( Vector3f( column1, rowpos += rowinc, 0.1f ) );
