@@ -124,7 +124,7 @@ public class StreamInterface implements SurfaceHolder.Callback,
     	return 0;
     }
 
-	public StreamInterface(MainActivity creatingActivity, String compUUID, String appName, int appId, String uniqueId, SurfaceHolder sh, int width, int height, int fps, boolean hostAudio, boolean remote) {
+	public StreamInterface(MainActivity creatingActivity, String compUUID, String appName, int appId, String uniqueId, SurfaceHolder sh, int width, int height, int fps, boolean hostAudio, int customBitrate, boolean remote) {
 		activity = creatingActivity;
 		
 		ComputerDetails computer = activity.pcSelector.findByUUID(compUUID);
@@ -209,7 +209,7 @@ public class StreamInterface implements SurfaceHolder.Callback,
                 .setResolution(width, height)
                 .setRefreshRate(fps)
                 .setApp(new NvApp(appName, appId))
-                .setBitrate(prefConfig.bitrate * 1000)
+                .setBitrate(customBitrate > 0 ? customBitrate : prefConfig.bitrate * 1000)
                 .setEnableSops(prefConfig.enableSops)
                 .enableAdaptiveResolution((decoderRenderer.getCapabilities() &
                         VideoDecoderRenderer.CAPABILITY_ADAPTIVE_RESOLUTION) != 0)

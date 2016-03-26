@@ -358,7 +358,7 @@ public class MainActivity extends VrActivity implements SurfaceHolder.Callback,
 		return playbackFailed;
 	}
 	
-	public void startMovie( final String uuid, final String appName, final int appId, final String binder, final int width, final int height, final int fps, final boolean hostAudio, final boolean remote ) 
+	public void startMovie( final String uuid, final String appName, final int appId, final String binder, final int width, final int height, final int fps, final boolean hostAudio, final int customBitrate, final boolean remote ) 
 	{
 		// set playbackFinished and playbackFailed to false immediately so it's set when we return to native
 		playbackFinished = false;
@@ -369,12 +369,12 @@ public class MainActivity extends VrActivity implements SurfaceHolder.Callback,
 		 @Override
     		public void run()
     		{
-			 	startMovieLocal( uuid, appName, appId, binder, width, height, fps, hostAudio, remote );
+			 	startMovieLocal( uuid, appName, appId, binder, width, height, fps, hostAudio, customBitrate, remote );
     		}
     	} );
 	}
 	
-	private void startMovieLocal( final String uuid, final String appName, int appId, final String binder, int width, int height, int fps, boolean hostAudio, boolean remote ) 
+	private void startMovieLocal( final String uuid, final String appName, int appId, final String binder, int width, int height, int fps, boolean hostAudio, int customBitrate, boolean remote ) 
 	{
 		Log.v(TAG, "startMovie " + appName + " on " + uuid );
 		
@@ -410,7 +410,7 @@ public class MainActivity extends VrActivity implements SurfaceHolder.Callback,
 			
 			surfaceHolder.setSurface(movieSurface);
 			
-			streamInterface = new StreamInterface(this, uuid, currentAppName, appId, binder, surfaceHolder, width, height, fps, hostAudio, remote );
+			streamInterface = new StreamInterface(this, uuid, currentAppName, appId, binder, surfaceHolder, width, height, fps, hostAudio, customBitrate, remote );
 			
 			streamInterface.surfaceCreated(surfaceHolder);
 	

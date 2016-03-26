@@ -278,13 +278,13 @@ const PcDef *CinemaApp::GetPreviousMovie() const
 	return previous;
 }
 
-void CinemaApp::StartMoviePlayback(int width, int height, int fps, bool hostAudio)
+void CinemaApp::StartMoviePlayback(int width, int height, int fps, bool hostAudio, int customBitrate)
 {
 	if ( CurrentMovie != NULL )
 	{
 		MovieFinishedPlaying = false;
 		bool remote = CurrentPc->isRemote;
-		Native::StartMovie( app, CurrentPc->UUID.ToCStr(), CurrentMovie->Name.ToCStr(), CurrentMovie->Id, CurrentPc->Binding.ToCStr(), width, height, fps, hostAudio, remote );
+		Native::StartMovie( app, CurrentPc->UUID.ToCStr(), CurrentMovie->Name.ToCStr(), CurrentMovie->Id, CurrentPc->Binding.ToCStr(), width, height, fps, hostAudio, customBitrate, remote );
 		ShouldResumeMovie = false;
 	}
 }

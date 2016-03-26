@@ -61,6 +61,8 @@ String CinemaStrings::ButtonText_Button720;
 String CinemaStrings::ButtonText_Button60FPS;
 String CinemaStrings::ButtonText_Button30FPS;
 String CinemaStrings::ButtonText_ButtonHostAudio;
+String CinemaStrings::ButtonText_ButtonApply;
+String CinemaStrings::ButtonText_ButtonBitrate;
 String CinemaStrings::ButtonText_ButtonDistance;
 String CinemaStrings::ButtonText_ButtonSize;
 String CinemaStrings::ButtonText_ButtonSBSOff;
@@ -128,6 +130,8 @@ void CinemaStrings::OneTimeInit( CinemaApp &cinema )
 	VrLocale::GetString( app->GetVrJni(), app->GetJavaObject(), "@string/ButtonText_ButtonSpeed", 		"@string/ButtonText_ButtonSpeed", 			ButtonText_ButtonSpeed );
 	VrLocale::GetString( app->GetVrJni(), app->GetJavaObject(), "@string/ButtonText_ButtonComfortMode", "@string/ButtonText_ButtonComfortMode", 	ButtonText_ButtonComfortMode );
 	VrLocale::GetString( app->GetVrJni(), app->GetJavaObject(), "@string/ButtonText_ButtonHostAudio", 	"@string/ButtonText_ButtonHostAudio", 		ButtonText_ButtonHostAudio );
+	VrLocale::GetString( app->GetVrJni(), app->GetJavaObject(), "@string/ButtonText_ButtonApply", 		"@string/ButtonText_ButtonApply", 			ButtonText_ButtonApply );
+	VrLocale::GetString( app->GetVrJni(), app->GetJavaObject(), "@string/ButtonText_ButtonBitrate", 	"@string/ButtonText_ButtonBitrate", 		ButtonText_ButtonBitrate );
 	VrLocale::GetString( app->GetVrJni(), app->GetJavaObject(), "@string/ButtonText_Button1080", 		"@string/ButtonText_Button1080", 			ButtonText_Button1080 );
 	VrLocale::GetString( app->GetVrJni(), app->GetJavaObject(), "@string/ButtonText_Button720",	 		"@string/ButtonText_Button720",				ButtonText_Button720 );
 	VrLocale::GetString( app->GetVrJni(), app->GetJavaObject(), "@string/ButtonText_Button60FPS", 		"@string/ButtonText_Button60FPS", 			ButtonText_Button60FPS );

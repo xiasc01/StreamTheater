@@ -84,9 +84,13 @@ void ModelManager::LoadModels()
 		// we want our theaters to show up first
 		Theaters.PushBack( LoadScene( "assets/scenes/home_theater.ovrscene", true, false, true ) );
 
-		SceneDef* freescreenscene = LoadScene( "assets/scenes/SubTheater.ovrscene", true, false, true );
+		SceneDef* freescreenscene = LoadScene( "assets/scenes/Galaxy.ovrscene", true, false, true );
 		freescreenscene->UseFreeScreen = true;
 		Theaters.PushBack( freescreenscene );
+
+		SceneDef* freescreenscene2 = LoadScene( "assets/scenes/SubTheater.ovrscene", true, false, true );
+		freescreenscene2->UseFreeScreen = true;
+		Theaters.PushBack( freescreenscene2 );
 
 		int width = 0, height = 0;
 

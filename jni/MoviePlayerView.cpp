@@ -108,6 +108,13 @@ MoviePlayerView::MoviePlayerView( CinemaApp &cinema ) :
 	Button60FPS( Cinema ),
 	Button30FPS( Cinema ),
 	ButtonHostAudio( Cinema ),
+	ButtonApply( Cinema ),
+	BitrateAdjust( Cinema ),
+	BitrateSliderBackground( Cinema ),
+	BitrateSliderIndicator( Cinema ),
+	BitrateCurrentSetting( Cinema ),
+	BitrateNewSetting( Cinema ),
+	BitrateSlider(),
 	ScreenMenuButton( Cinema ),
 	ScreenMenu( NULL ),
 	ButtonSBSOff( Cinema ),
@@ -181,6 +188,11 @@ MoviePlayerView::MoviePlayerView( CinemaApp &cinema ) :
 	streamHeight(720),
 	streamFPS(60),
 	streamHostAudio(true),
+	customBitrate(0.0),
+	bitrate(0),
+	videoSettingsUpdated(false),
+	BitrateMin(0.0),
+	BitrateMax(20000.0),
 	GazeMin(0.7),
 	GazeMax(1.58),
 	TrackpadMin(-4.0),
@@ -296,11 +308,14 @@ void Button720Callback				( UITextButton *button, void *object ) { ( ( MoviePlay
 void Button60FPSCallback			( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->Button60FPSPressed(); }
 void Button30FPSCallback			( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->Button30FPSPressed(); }
 void HostAudioCallback				( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->HostAudioPressed(); }
+void ApplyVideoCallback				( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->ApplyVideoPressed(); }
 bool Button1080IsSelectedCallback	( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->Button1080IsSelected(); }
 bool Button720IsSelectedCallback	( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->Button720IsSelected(); }
 bool Button60FPSIsSelectedCallback	( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->Button60FPSIsSelected(); }
 bool Button30FPSIsSelectedCallback	( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->Button30FPSIsSelected(); }
 bool HostAudioIsSelectedCallback	( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->HostAudioIsSelected(); }
+bool ApplyVideoIsEnabledCallback	( UITextButton *button, void *object ) { return ( ( MoviePlayerView * )object )->ApplyVideoIsEnabled(); }
+void BitrateCallback				( SliderComponent *button, void *object, const float value ) { ( ( MoviePlayerView * )object )->BitratePressed( value ); }
 
 void SBSOffCallback					( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->SBSOffPressed(); }
 void SBSRiftCallback				( UITextButton *button, void *object ) { ( ( MoviePlayerView * )object )->SBSRiftPressed(); }
@@ -533,6 +548,9 @@ void MoviePlayerView::InitializeSettings()
 			defaultSettings->Define("StreamHeight", &streamHeight);
 			defaultSettings->Define("StreamFPS", &streamFPS);
 			defaultSettings->Define("EnableHostAudio", &streamHostAudio);
+			defaultSettings->Define("CustomBitrate", &customBitrate);
+			defaultSettings->Define("MinBitrate", &BitrateMin);
+			defaultSettings->Define("MaxBitrate", &BitrateMax);
 
 			defaultSettings->Define("GazeScale", &gazeScaleValue);
 			defaultSettings->Define("TrackpadScale", &trackpadScaleValue);
@@ -955,6 +973,24 @@ void MoviePlayerView::CreateMenu( OvrGuiSys & guiSys )
 	ButtonHostAudio.SetOnClick( HostAudioCallback, this);
 	ButtonHostAudio.SetIsSelected( HostAudioIsSelectedCallback, this);
 
+	ButtonApply.AddToMenu( guiSys, PlaybackControlsMenu, StreamMenu );
+	ButtonApply.SetLocalPosition( PixelPos( MENU_X * 3, MENU_Y * 2, 1 ) );
+	ButtonApply.SetText( CinemaStrings::ButtonText_ButtonApply );
+	TextButtonHelper(ButtonApply);
+	ButtonApply.SetOnClick( ApplyVideoCallback, this);
+	ButtonApply.SetIsEnabled( ApplyVideoIsEnabledCallback, this);
+
+	BitrateAdjust.AddToMenu( guiSys, PlaybackControlsMenu, StreamMenu );
+	BitrateAdjust.SetLocalPosition( PixelPos( MENU_X * -1, MENU_Y * 2.75, 1 ) );
+	BitrateAdjust.SetText( CinemaStrings::ButtonText_ButtonBitrate );
+	BitrateAdjust.SetLocalScale( Vector3f( 1.0f ) );
+	BitrateAdjust.SetFontScale( 1.0f );
+	BitrateAdjust.SetColor( Vector4f( 0.0f, 0.0f, 0.0f, 1.0f ) );
+	BitrateAdjust.SetTextColor( Vector4f( 1.0f, 1.0f, 1.0f, 1.0f ) );
+	BitrateAdjust.SetImage( 0, SURFACE_TEXTURE_DIFFUSE, BackgroundTintTexture, 240, 80 );
+	SetUpSlider(guiSys, StreamMenu, BitrateSlider, BitrateSliderBackground, BitrateSliderIndicator, BitrateCurrentSetting, BitrateNewSetting, 300, MENU_X * -1, MENU_Y * 3.5);
+	BitrateSlider.SetOnClick( BitrateCallback, this );
+
 	ScreenMenu = new UIContainer( Cinema );
 	ScreenMenu->AddToMenu( guiSys, PlaybackControlsMenu, &PlaybackControlsScale );
 	ScreenMenu->SetLocalPosition( PixelPos( 0, MENU_TOP, 1 ) );
@@ -1143,7 +1179,7 @@ void MoviePlayerView::OnOpen()
 	HideUI();
 	Cinema.SceneMgr.LightsOff( 1.5f );
 
-	Cinema.StartMoviePlayback(streamWidth, streamHeight, streamFPS, streamHostAudio);
+	Cinema.StartMoviePlayback(streamWidth, streamHeight, streamFPS, streamHostAudio, bitrate);
 
 	if ( Cinema.SceneMgr.SceneInfo.UseVRScreen )
 	{
@@ -2105,7 +2141,7 @@ void MoviePlayerView::ResetDefaultPressed()
 
 	Cinema.SceneMgr.ClearMovie();
 	UpdateMenus();
-	Cinema.StartMoviePlayback(streamWidth, streamHeight, streamFPS, streamHostAudio);
+	Cinema.StartMoviePlayback(streamWidth, streamHeight, streamFPS, streamHostAudio, bitrate);
 
 }
 void MoviePlayerView::Save1Pressed()
@@ -2153,7 +2189,7 @@ void MoviePlayerView::LoadSettings(Settings* set)
 	if( oldWidth != streamWidth || oldHeight != streamHeight || oldFPS != streamFPS )
 	{
 		Cinema.SceneMgr.ClearMovie();
-		Cinema.StartMoviePlayback(streamWidth, streamHeight, streamFPS, streamHostAudio);
+		Cinema.StartMoviePlayback(streamWidth, streamHeight, streamFPS, streamHostAudio, bitrate);
 	}
 
 	GazeSlider.SetExtents(GazeMax,GazeMin,2);
@@ -2162,6 +2198,8 @@ void MoviePlayerView::LoadSettings(Settings* set)
 	TrackpadSlider.SetValue(trackpadScaleValue);
 	GamepadSlider.SetExtents(GamepadMax,GamepadMin,2);
 	GamepadSlider.SetValue(gamepadScaleValue);
+	BitrateSlider.SetExtents(BitrateMax,BitrateMin,-1);
+	BitrateSlider.SetValue(customBitrate);
 	DistanceSlider.SetExtents(VoidScreenDistanceMax,VoidScreenDistanceMin,2);
 	DistanceSlider.SetValue(Cinema.SceneMgr.FreeScreenDistance);
 	SizeSlider.SetExtents(VoidScreenScaleMax,VoidScreenScaleMin,2);
@@ -2251,41 +2289,64 @@ void MoviePlayerView::GamepadScalePressed(const float value)
 // Stream controls
 void MoviePlayerView::Button1080pPressed()
 {
-	Cinema.SceneMgr.ClearMovie();
 	streamWidth = 1920;
 	streamHeight = 1080;
-	streamFPS = 60;
+	videoSettingsUpdated = true;
 	UpdateMenus();
-	Cinema.StartMoviePlayback(streamWidth, streamHeight, streamFPS, streamHostAudio);
 }
 void MoviePlayerView::Button720Pressed()
 {
-	Cinema.SceneMgr.ClearMovie();
 	streamWidth = 1280;
 	streamHeight = 720;
+	videoSettingsUpdated = true;
 	UpdateMenus();
-	Cinema.StartMoviePlayback(streamWidth, streamHeight, streamFPS, streamHostAudio);
 }
 void MoviePlayerView::Button60FPSPressed()
 {
-	Cinema.SceneMgr.ClearMovie();
 	streamFPS = 60;
+	videoSettingsUpdated = true;
 	UpdateMenus();
-	Cinema.StartMoviePlayback(streamWidth, streamHeight, streamFPS, streamHostAudio);
 }
 void MoviePlayerView::Button30FPSPressed()
 {
-	Cinema.SceneMgr.ClearMovie();
 	streamFPS = 30;
+	videoSettingsUpdated = true;
 	UpdateMenus();
-	Cinema.StartMoviePlayback(streamWidth, streamHeight, streamFPS, streamHostAudio);
 }
 void MoviePlayerView::HostAudioPressed()
 {
-	Cinema.SceneMgr.ClearMovie();
 	streamHostAudio = !streamHostAudio;
+	videoSettingsUpdated = true;
 	UpdateMenus();
-	Cinema.StartMoviePlayback(streamWidth, streamHeight, streamFPS, streamHostAudio);
+}
+void MoviePlayerView::BitratePressed( const float value)
+{
+	customBitrate = value;
+
+	bitrate = customBitrate;
+	if ( bitrate <= ( BitrateMin + BitrateMax * 0.05  ) )
+	{
+		bitrate = 0;
+		customBitrate = 0.0;
+		BitrateSlider.SetValue( 0 );
+	}
+	else
+	{
+		BitrateSlider.SetValue( value );
+	}
+
+	if(videoSettingsUpdated == false)
+	{
+		videoSettingsUpdated = true;
+		UpdateMenus();
+	}
+}
+void MoviePlayerView::ApplyVideoPressed()
+{
+	videoSettingsUpdated = false;
+	Cinema.SceneMgr.ClearMovie();
+	UpdateMenus();
+	Cinema.StartMoviePlayback(streamWidth, streamHeight, streamFPS, streamHostAudio, bitrate);
 }
 void MoviePlayerView::LatencyPressed(const float value)
 {
@@ -2376,7 +2437,10 @@ bool MoviePlayerView::HostAudioIsSelected()
 {
 	return streamHostAudio;
 }
-
+bool MoviePlayerView::ApplyVideoIsEnabled()
+{
+	return videoSettingsUpdated;
+}
 
 // Screen controls
 void MoviePlayerView::ChangeSeatPressed()
@@ -2419,6 +2483,7 @@ void MoviePlayerView::UpdateMenus()
 	Button60FPS.UpdateButtonState();
 	Button30FPS.UpdateButtonState();
 	ButtonHostAudio.UpdateButtonState();
+	ButtonApply.UpdateButtonState();
 
 	ButtonSBSOff.UpdateButtonState();
 	ButtonSBSRift.UpdateButtonState();
@@ -2442,6 +2507,8 @@ void MoviePlayerView::UpdateMenus()
 	TrackpadSlider.SetValue(trackpadScaleValue);
 	GamepadSlider.SetExtents(GamepadMax,GamepadMin,2);
 	GamepadSlider.SetValue(gamepadScaleValue);
+	BitrateSlider.SetExtents(BitrateMax,BitrateMin,-1);
+	BitrateSlider.SetValue(customBitrate);
 	DistanceSlider.SetExtents(VoidScreenDistanceMax,VoidScreenDistanceMin,2);
 	DistanceSlider.SetValue(Cinema.SceneMgr.FreeScreenDistance);
 	SizeSlider.SetExtents(VoidScreenScaleMax,VoidScreenScaleMin,2);
@@ -2672,7 +2739,14 @@ void SliderComponent::SetText( UILabel *label, const float value )
 	{
 		label->SetText( StringUtils::Va( "%d", (int) value ) );
 	}
-	else if( SigFigs < 0 )
+	else if( SigFigs == -1 )
+	{
+		if( (1 * value) > (1 * Min))
+			label->SetText( StringUtils::Va( "%d", (int) value ) );
+		else
+			label->SetText( "Default" );
+	}
+	else if( SigFigs < -1 )
 	{ // Hex, just for fun
 		label->SetText( StringUtils::Va( "%#x", (int) value ) );
 	}
