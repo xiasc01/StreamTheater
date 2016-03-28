@@ -31,7 +31,7 @@ Java_com_limelight_nvstream_enet_EnetConnection_createClient(JNIEnv *env, jobjec
     }
     
     // Create a client that can use 1 outgoing connection and 1 channel
-    return CLIENT_TO_LONG(enet_host_create(enetAddress.address.ss_family, 1, 1, 0, 0));
+    return CLIENT_TO_LONG(enet_host_create(enetAddress.address.ss_family, NULL, 1, 1, 0, 0));
 }
 
 JNIEXPORT jlong JNICALL
