@@ -226,7 +226,7 @@ public class PcSelector {
                         // Spin the dialog off in a thread because it blocks
                         MainActivity.nativeShowPair(activity.getAppPtr(), activity.getResources().getString(R.string.pair_pairing_msg)+" "+pinStr);
 
-                        PairingManager.PairState pairState = httpConn.pair(pinStr);
+                        PairingManager.PairState pairState = httpConn.pair(httpConn.getServerInfo(), pinStr);
                         if (pairState == PairingManager.PairState.PIN_WRONG) {
                             message = activity.getResources().getString(R.string.pair_incorrect_pin);
                         }
