@@ -73,7 +73,7 @@ public:
     static void			closeApp(App *app, const char* uuid, int appID);
 
     static long			getLastFrameTimestamp(App *app);
-    static long			currentTimeMillis(App *app);
+    static long			currentTimeStamp(App *app);
 
     static int			addPCbyIP(App *app, const char* ip);
 

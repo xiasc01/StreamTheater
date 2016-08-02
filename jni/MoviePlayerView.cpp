@@ -1552,9 +1552,9 @@ void MoviePlayerView::MovieScreenUpdated()
 void MoviePlayerView::CheckVRInput( const VrFrame & vrFrame )
 {
 	Matrix4f currentPose = Cinema.SceneMgr.Scene.CenterViewMatrix().Inverted();
-	// static double timediff = Native::currentTimeMillis(Cinema.app) - (vrapi_GetTimeInSeconds() * 1000.0);
+	// static double timediff = Native::currentTimeStamp(Cinema.app) - (vrapi_GetTimeInSeconds() * 1000.0);
 	// ((long)(vrapi_GetPredictedDisplayTime(GetOvrMobile(), 1) * 1000.0)) - timediff;
-	long currentPoseTime = Native::currentTimeMillis(Cinema.app);
+	long currentPoseTime = Native::currentTimeStamp(Cinema.app);
 	RecordPose( currentPoseTime, currentPose );
 
 	float cy, cp, cr, ly, lp, lr;

@@ -560,9 +560,9 @@ public class MainActivity extends VrActivity implements SurfaceHolder.Callback,
 		return 0;
 	}
 	
-	public long currentTimeMillis()
+	public long currentTimeStamp()
 	{
-		return System.currentTimeMillis();
+		return System.nanoTime() / 1000;
 	}
 	
 	public void closeApp(final String compUUID, int appID)

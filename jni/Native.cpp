@@ -137,7 +137,7 @@ static jmethodID	startPcUpdatesMethodId = NULL;
 static jmethodID	stopAppUpdatesMethodId = NULL;
 static jmethodID	startAppUpdatesMethodId = NULL;
 static jmethodID	getLastFrameTimestampMethodId = NULL;
-static jmethodID	currentTimeMillisMethodId = NULL;
+static jmethodID	currentTimeStampMethodId = NULL;
 static jmethodID	closeAppMethodId = NULL;
 static jmethodID	controllerHandledByMoonlightMethodId = NULL;
 static jmethodID	sendKeyboardMethodId = NULL;
@@ -182,7 +182,7 @@ void Native::OneTimeInit( App *app, jclass mainActivityClass )
 	stopAppUpdatesMethodId				= GetMethodID( app, mainActivityClass, "stopAppUpdates", "()V" );
 	startAppUpdatesMethodId				= GetMethodID( app, mainActivityClass, "startAppUpdates", "()V" );
 	getLastFrameTimestampMethodId		= GetMethodID( app, mainActivityClass, "getLastFrameTimestamp", "()J" );
-	currentTimeMillisMethodId			= GetMethodID( app, mainActivityClass, "currentTimeMillis", "()J" );
+	currentTimeStampMethodId			= GetMethodID( app, mainActivityClass, "currentTimeStamp", "()J" );
 	closeAppMethodId					= GetMethodID( app, mainActivityClass, "closeApp", "(Ljava/lang/String;I)V" );
 	controllerHandledByMoonlightMethodId = GetMethodID( app, mainActivityClass, "controllerHandledByMoonlight", "(Z)V");
 	sendKeyboardMethodId				= GetMethodID( app, mainActivityClass, "sendKeyboard", "(IZ)V" );
@@ -338,9 +338,9 @@ long Native::getLastFrameTimestamp(App *app)
 {
 	return app->GetVrJni()->CallLongMethod( app->GetJavaObject(), getLastFrameTimestampMethodId );
 }
-long Native::currentTimeMillis(App *app)
+long Native::currentTimeStamp(App *app)
 {
-	return app->GetVrJni()->CallLongMethod( app->GetJavaObject(), currentTimeMillisMethodId );
+	return app->GetVrJni()->CallLongMethod( app->GetJavaObject(), currentTimeStampMethodId );
 }
 
 int Native::addPCbyIP(App *app, const char* ip)

@@ -15,6 +15,7 @@ import com.limelight.nvstream.av.video.VideoDecoderRenderer;
 import com.limelight.nvstream.av.video.VideoDepacketizer;
 import com.limelight.preferences.PreferenceConfiguration;
 
+import android.annotation.SuppressLint;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
@@ -212,6 +213,7 @@ public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
         return true;
     }
 
+    @SuppressLint("NewApi") 
     private void handleDecoderException(Exception e, ByteBuffer buf, int codecFlags) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             if (e instanceof CodecException) {
@@ -512,6 +514,7 @@ public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
 
     // Using the new getInputBuffer() API on Lollipop allows
     // the framework to do some performance optimizations for us
+    @SuppressLint("NewApi") 
     private ByteBuffer getEmptyInputBuffer(int inputBufferIndex) {
         ByteBuffer buf;
 
@@ -761,7 +764,7 @@ public class MediaCodecDecoderRenderer extends EnhancedDecoderRenderer {
     
     @Override
     public long getLastFrameTimestamp() {
-    	return presentationTimeUs / 1000;
+    	return presentationTimeUs;
     }
 
     @Override
